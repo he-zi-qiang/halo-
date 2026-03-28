@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>以 Halo 为例：接口知识完全指南</title>
+<style>
+  /* ── 全局基础 ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+    --border: #475569; --text: #e2e8f0; --text2: #94a3b8;
+    --accent: #38bdf8; --accent2: #818cf8; --green: #4ade80;
+    --orange: #fb923c; --red: #f87171; --pink: #f472b6;
+    --yellow: #facc15;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.8;
+    max-width: 1100px; margin: 0 auto; padding: 0 24px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ── 头部 ── */
+  .hero {
+    text-align: center; padding: 80px 0 40px;
+    background: linear-gradient(135deg, rgba(56,189,248,0.08), rgba(129,140,248,0.08));
+    border-radius: 16px; margin: 40px 0;
+  }
+  .hero h1 { font-size: 2.6em; font-weight: 800; margin-bottom: 12px; }
+  .hero h1 span { background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: var(--text2); font-size: 1.15em; max-width: 700px; margin: 0 auto; }
+  .hero .badge {
+    display: inline-block; background: var(--surface2); color: var(--accent);
+    padding: 4px 14px; border-radius: 20px; font-size: 0.85em; margin-top: 16px;
+  }
+
+  /* ── 目录 ── */
+  .toc {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px 36px; margin: 32px 0;
+  }
+  .toc h2 { font-size: 1.2em; margin-bottom: 16px; color: var(--accent); }
+  .toc ol { padding-left: 22px; }
+  .toc li { margin: 6px 0; }
+  .toc li a { color: var(--text); font-size: 0.98em; }
+  .toc li a:hover { color: var(--accent); }
+
+  /* ── 章节 ── */
+  .chapter {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 36px 40px; margin: 40px 0;
+  }
+  .chapter h2 {
+    font-size: 1.7em; font-weight: 700; margin-bottom: 24px; padding-bottom: 12px;
+    border-bottom: 2px solid var(--accent); display: flex; align-items: center; gap: 12px;
+  }
+  .chapter h2 .num {
+    background: var(--accent); color: var(--bg); width: 36px; height: 36px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.85em; font-weight: 800; flex-shrink: 0;
+  }
+  .chapter h3 { font-size: 1.25em; margin: 28px 0 14px; color: var(--accent2); }
+  .chapter h4 { font-size: 1.05em; margin: 20px 0 10px; color: var(--green); }
+  .chapter p, .chapter li { color: var(--text); font-size: 0.95em; }
+  .chapter ul, .chapter ol { padding-left: 22px; margin: 10px 0; }
+  .chapter li { margin: 6px 0; }
+
+  /* ── 代码块 ── */
+  pre {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 8px;
+    padding: 18px 22px; overflow-x: auto; margin: 14px 0; font-size: 0.88em;
+    line-height: 1.7;
+  }
+  code { font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace; }
+  p code, li code {
+    background: var(--surface2); padding: 2px 7px; border-radius: 4px;
+    font-size: 0.9em; color: var(--orange);
+  }
+  .code-label {
+    display: inline-block; background: var(--accent); color: var(--bg);
+    font-size: 0.75em; font-weight: 700; padding: 2px 10px; border-radius: 4px 4px 0 0;
+    margin-bottom: -1px; position: relative; top: 1px;
+  }
+
+  /* ── 对比卡片 ── */
+  .compare {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 18px 0;
+  }
+  .compare-card {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; position: relative;
+  }
+  .compare-card.halo { border-top: 3px solid var(--accent); }
+  .compare-card.echo { border-top: 3px solid var(--accent2); }
+  .compare-card h5 {
+    font-size: 0.9em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .compare-card.halo h5 { color: var(--accent); }
+  .compare-card.echo h5 { color: var(--accent2); }
+  .compare-card pre { border: none; padding: 12px; margin: 0; font-size: 0.83em; background: transparent; }
+
+  /* ── 表格 ── */
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0;
+    font-size: 0.9em;
+  }
+  th { background: var(--surface2); color: var(--accent); text-align: left; font-weight: 600; }
+  th, td { padding: 10px 14px; border: 1px solid var(--border); }
+  td { color: var(--text); }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  /* ── 流程图 ── */
+  .flow-diagram {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px; margin: 18px 0; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em; line-height: 1.6; overflow-x: auto; white-space: pre;
+    color: var(--text2);
+  }
+  .flow-diagram .highlight { color: var(--accent); font-weight: 700; }
+  .flow-diagram .green { color: var(--green); }
+  .flow-diagram .orange { color: var(--orange); }
+  .flow-diagram .pink { color: var(--pink); }
+
+  /* ── 高亮提示 ── */
+  .callout {
+    border-radius: 8px; padding: 16px 20px; margin: 16px 0;
+    font-size: 0.92em; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .callout.info { background: rgba(56,189,248,0.1); border-left: 4px solid var(--accent); }
+  .callout.warn { background: rgba(251,146,60,0.1); border-left: 4px solid var(--orange); }
+  .callout.success { background: rgba(74,222,128,0.1); border-left: 4px solid var(--green); }
+  .callout .icon { font-size: 1.2em; flex-shrink: 0; }
+
+  /* ── 步骤 ── */
+  .step {
+    display: flex; gap: 16px; margin: 20px 0; padding: 20px;
+    background: rgba(255,255,255,0.02); border-radius: 10px; border: 1px solid var(--border);
+  }
+  .step-num {
+    background: var(--accent2); color: white; width: 32px; height: 32px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.85em; flex-shrink: 0;
+  }
+  .step-content { flex: 1; }
+  .step-content h4 { margin-top: 0; color: var(--text); font-size: 1em; }
+
+  /* ── 接口卡片 ── */
+  .api-card {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 10px;
+    margin: 20px 0; overflow: hidden;
+  }
+  .api-card-header {
+    display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+    border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02);
+  }
+  .method-badge {
+    font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 0.8em;
+    padding: 4px 10px; border-radius: 4px; letter-spacing: 0.5px;
+  }
+  .method-badge.get { background: rgba(74,222,128,0.15); color: var(--green); }
+  .method-badge.post { background: rgba(251,146,60,0.15); color: var(--orange); }
+  .method-badge.put { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .method-badge.delete { background: rgba(248,113,113,0.15); color: var(--red); }
+  .api-card-header .path { font-family: monospace; font-size: 0.9em; color: var(--text); }
+  .api-card-header .desc { color: var(--text2); font-size: 0.85em; margin-left: auto; }
+  .api-card-body { padding: 18px 20px; }
+  .api-card-body h5 { color: var(--text2); font-size: 0.82em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+
+  /* ── 金字塔图 ── */
+  .pyramid { text-align: center; margin: 24px 0; }
+  .pyramid-level {
+    margin: 0 auto; padding: 12px; border-radius: 6px; color: white;
+    font-weight: 600; font-size: 0.9em;
+  }
+
+  /* ── 响应式 ── */
+  @media (max-width: 768px) {
+    .compare { grid-template-columns: 1fr; }
+    .chapter { padding: 24px 20px; }
+    .hero h1 { font-size: 1.8em; }
+    body { padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 标题 ═══════════ -->
+<div class="hero">
+  <h1>以 Halo 为例<br><span>接口知识完全指南</span></h1>
+  <p>从「什么是接口」到「如何测试接口」，用真实的开源博客系统 Halo 2.2 的源码和接口文档，带你彻底搞懂前后端通信的全部核心概念。</p>
+  <div class="badge">Halo 2.2 · Java + Spring WebFlux · Vue 3 + TypeScript</div>
+</div>
+
+<!-- ═══════════ 目录 ═══════════ -->
+<div class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#ch1">什么是接口？——用 Halo 的「文章发布」讲明白</a></li>
+    <li><a href="#ch2">什么是接口测试？——它在整个流程中的位置</a></li>
+    <li><a href="#ch3">什么是接口文档？——以 Halo 接口文档 V2.2 为例逐字段解读</a></li>
+    <li><a href="#ch4">后端如何创建（定义）一个接口？——Halo 源码剖析</a></li>
+    <li><a href="#ch5">前端如何调用一个接口？——Halo 前端源码剖析</a></li>
+    <li><a href="#ch6">认证是怎么做的？——Halo 的三种认证方式</a></li>
+    <li><a href="#ch7">如何调试一个接口？——Postman 实战完整流程</a></li>
+    <li><a href="#ch8">完整链路串讲：从写文章到发布的全部接口调用</a></li>
+  </ol>
+</div>
+
+<!-- ═══════════ 第一章 ═══════════ -->
+<div class="chapter" id="ch1">
+  <h2><span class="num">1</span>什么是接口？</h2>
+
+  <h3>1.1 最直白的理解</h3>
+  <p><strong>接口（API，Application Programming Interface）就是前端和后端之间的「约定好的对话方式」。</strong></p>
+  <p>想象你去餐厅吃饭：</p>
+  <ul>
+    <li><strong>你（前端）</strong>：看菜单 → 跟服务员说「我要一份宫保鸡丁」</li>
+    <li><strong>服务员（接口）</strong>：把你的话翻译成厨房能懂的指令</li>
+    <li><strong>厨房（后端 + 数据库）</strong>：做菜 → 端给你</li>
+  </ul>
+  <p>在这个过程中，<strong>你不需要知道厨房怎么做菜，厨房也不需要知道你坐在哪一桌</strong>。你们之间通过「菜单 + 服务员」这个接口来交流。</p>
+
+  <h3>1.2 在 Halo 里，接口长什么样？</h3>
+  <p>当你在 Halo 博客后台点击「发布文章」按钮时，实际发生的事是：</p>
+
+  <div class="flow-diagram"><span class="pink">你在浏览器点击「发布」</span>
+        │
+        ▼
+<span class="highlight">前端 Vue 代码执行：</span>
+consoleApiClient.content.post.publishPost({ name: "文章ID" })
+        │
+        │ ── 自动组装成 HTTP 请求 ──→
+        │
+        ▼
+<span class="green">后端 Java 代码接收：</span>
+PUT /apis/api.console.halo.run/v1alpha1/posts/{name}/publish
+
+请求头：Authorization: Basic bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz
+        │
+        ▼
+<span class="orange">后端处理逻辑：</span>
+① 验证身份（认证中间件）
+② 查找文章（数据库查询）
+③ 修改状态 phase: "DRAFT" → "PUBLISHED"
+④ 保存到数据库
+⑤ 返回 JSON 结果
+        │
+        ▼
+<span class="pink">前端收到响应：</span>
+{ "status": { "phase": "PUBLISHED" }, "spec": { "title": "Hello Halo" } }
+        │
+        ▼
+<span class="pink">页面更新：文章状态变为「已发布」</span></div>
+
+  <h3>1.3 接口的本质：HTTP 请求 + JSON 响应</h3>
+  <p>每一个接口调用，本质上就是一次 <strong>HTTP 通信</strong>，由以下 4 个部分组成：</p>
+  <table>
+    <tr><th>组成部分</th><th>说明</th><th>Halo 实际例子</th></tr>
+    <tr>
+      <td><strong>请求方法</strong></td>
+      <td>你要做什么操作</td>
+      <td><code>GET</code> 查看、<code>POST</code> 创建、<code>PUT</code> 修改、<code>DELETE</code> 删除</td>
+    </tr>
+    <tr>
+      <td><strong>请求路径</strong></td>
+      <td>你要操作哪个资源</td>
+      <td><code>/apis/api.console.halo.run/v1alpha1/posts</code></td>
+    </tr>
+    <tr>
+      <td><strong>请求参数</strong></td>
+      <td>操作的具体内容</td>
+      <td>URL 参数：<code>?page=1&size=10</code><br>Body 参数：<code>{"post":{...}, "content":{...}}</code></td>
+    </tr>
+    <tr>
+      <td><strong>响应结果</strong></td>
+      <td>后端返回的数据</td>
+      <td>状态码 <code>200</code> + JSON 数据 <code>{"items":[...],"total":5}</code></td>
+    </tr>
+  </table>
+
+  <div class="callout info">
+    <span class="icon">💡</span>
+    <div><strong>RESTful 风格</strong>：Halo 的接口文档第一行就写了「接口类型：RESTful」。这是一种接口设计规范——用 HTTP 方法（GET/POST/PUT/DELETE）表达操作类型，用 URL 路径表达资源，用 JSON 传递数据。Halo 的所有接口都遵循这个规范。</div>
+  </div>
+</div>
+
+<!-- ═══════════ 第二章 ═══════════ -->
+<div class="chapter" id="ch2">
+  <h2><span class="num">2</span>什么是接口测试？</h2>
+
+  <h3>2.1 先看完整系统有几层</h3>
+  <p>一个 Web 应用从用户点击到数据库存储，经过 <strong>4 层</strong>：</p>
+
+  <div class="flow-diagram">层级          Halo 中对应的文件 / 组件               职责
+─────────────────────────────────────────────────────────────
+<span class="pink">① 前端 UI 层</span>    PostList.vue / PostEditor.vue         按钮、表单、页面渲染
+        │
+        │  HTTP 请求
+        ▼
+<span class="highlight">② 接口路由层</span>    PostEndpoint.java  endpoint() 方法     URL 匹配、参数解析
+        │
+        ▼
+<span class="green">③ 认证 & 业务层</span>  Basic Auth 验证 + PostService          身份验证、业务规则
+        │
+        ▼
+<span class="orange">④ 数据层</span>        Spring Data + 数据库                    增删改查</div>
+
+  <h3>2.2 接口测试覆盖哪些层？</h3>
+  <p><strong>接口测试 = 跳过第 ① 层（前端 UI），直接从第 ② 层开始，一直验证到第 ④ 层。</strong></p>
+  <p>你用 Postman 或脚本代替了浏览器，直接向后端发 HTTP 请求：</p>
+
+  <div class="flow-diagram">
+                                         ┌──────────────────────────┐
+    <span class="pink">正常用户操作：</span>                      │                          │
+    浏览器 → Vue 前端 → HTTP 请求 → 后端   │  <span class="highlight">★ 接口测试在这里切入 ★</span>   │
+                                         │  Postman 直接发 HTTP 请求  │
+    <span class="green">接口测试：</span>                          │  跳过前端，直接对话后端    │
+    Postman ─────────→ HTTP 请求 → 后端   │                          │
+                                         └──────────────────────────┘
+
+    覆盖范围：
+    ┌─────────────────────────────────────────────────────┐
+    │  ✅ 路由匹配      URL 对不对？方法是 GET 还是 POST？  │
+    │  ✅ 认证拦截      没带 token 会不会被拦截？            │
+    │  ✅ 参数校验      必填字段没填会不会报错？              │
+    │  ✅ 业务逻辑      数据处理规则对不对？                  │
+    │  ✅ 数据库操作    数据真的存进去/取出来了吗？            │
+    │  ✅ 错误处理      异常情况返回的状态码和消息对不对？      │
+    └─────────────────────────────────────────────────────┘</div>
+
+  <h3>2.3 为什么需要接口测试？——三个真实场景</h3>
+
+  <div class="step">
+    <span class="step-num">1</span>
+    <div class="step-content">
+      <h4>场景一：前后端分离开发</h4>
+      <p>Halo 的前端（Vue）和后端（Java）由不同的人开发。后端写好「创建文章接口」后，<strong>不需要等前端页面做好，就能用 Postman 验证接口是否正确</strong>。前端开发者也能通过接口文档提前知道要传什么参数、会收到什么返回。</p>
+    </div>
+  </div>
+  <div class="step">
+    <span class="step-num">2</span>
+    <div class="step-content">
+      <h4>场景二：精确定位 Bug</h4>
+      <p>用户报告「发布文章失败」。是前端按钮没发请求？还是后端逻辑有问题？直接用 Postman 调用 <code>PUT /posts/{name}/publish</code>——如果 Postman 也失败，说明是后端 Bug；如果 Postman 成功，说明是前端 Bug。<strong>一步就缩小了排查范围。</strong></p>
+    </div>
+  </div>
+  <div class="step">
+    <span class="step-num">3</span>
+    <div class="step-content">
+      <h4>场景三：自动化回归测试</h4>
+      <p>Halo 仓库里有 <code>PostEndpointTest.java</code> 文件，用代码自动对每个接口发请求并验证结果。每次修改代码后自动运行，<strong>确保没有改坏已有功能</strong>。</p>
+    </div>
+  </div>
+
+  <h3>2.4 测试金字塔——接口测试的投入产出比最高</h3>
+  <div class="pyramid">
+    <div class="pyramid-level" style="width:200px; background: var(--red);">E2E 测试（少量）</div>
+    <div class="pyramid-level" style="width:350px; background: var(--accent); margin-top: 4px;">★ 接口测试（中量）—— 你正在学的</div>
+    <div class="pyramid-level" style="width:500px; background: var(--accent2); margin-top: 4px;">单元测试（大量）</div>
+  </div>
+  <table>
+    <tr><th>测试类型</th><th>覆盖范围</th><th>速度</th><th>定位精度</th><th>成本</th></tr>
+    <tr><td>E2E 测试</td><td>前端 → 后端 → 数据库（全部）</td><td>最慢</td><td>低</td><td>高</td></tr>
+    <tr><td><strong>接口测试</strong></td><td><strong>路由 → 业务 → 数据库</strong></td><td><strong>中等</strong></td><td><strong>高</strong></td><td><strong>低</strong></td></tr>
+    <tr><td>单元测试</td><td>单个函数</td><td>最快</td><td>最高</td><td>最低</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════ 第三章 ═══════════ -->
+<div class="chapter" id="ch3">
+  <h2><span class="num">3</span>什么是接口文档？</h2>
+
+  <h3>3.1 定义</h3>
+  <p><strong>接口文档是前后端之间的「合同」</strong>——它详细规定了每个接口的 URL 是什么、需要传什么参数、会返回什么数据。有了这份「合同」，前端和后端可以各自独立开发，最后对接时只要双方都按合同执行即可。</p>
+
+  <h3>3.2 以 Halo 接口文档 V2.2 为例——逐字段解读</h3>
+  <p>下面我拿文档中「3.6 编写一篇文章接口」作为范例，解读接口文档中的每一个关键信息：</p>
+
+  <div class="api-card">
+    <div class="api-card-header">
+      <span class="method-badge post">POST</span>
+      <span class="path">/apis/api.console.halo.run/v1alpha1/posts</span>
+      <span class="desc">编写（创建）一篇文章</span>
+    </div>
+    <div class="api-card-body">
+      <h5>① 基础信息</h5>
+      <table>
+        <tr><th>字段</th><th>值</th><th>你需要关注什么</th></tr>
+        <tr><td>接口路径</td><td><code>/apis/api.console.halo.run/v1alpha1/posts</code></td><td>Postman 里要填的完整 URL = 接口地址 + 此路径</td></tr>
+        <tr><td>请求方式</td><td><code>POST</code></td><td>Postman 左上角选 POST，不是 GET</td></tr>
+        <tr><td>接口描述</td><td>创建一篇文章草稿</td><td>明确这个接口做什么事</td></tr>
+      </table>
+
+      <h5>② 请求头（Headers）</h5>
+<pre><code>Accept: */*
+Content-Type: application/json
+Authorization: Basic bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz</code></pre>
+      <table>
+        <tr><th>Header</th><th>作用</th></tr>
+        <tr><td><code>Accept</code></td><td>告诉后端「我接受任何格式的响应」</td></tr>
+        <tr><td><code>Content-Type</code></td><td>告诉后端「我发的数据是 JSON 格式」</td></tr>
+        <tr><td><code>Authorization</code></td><td>身份认证，证明「我有权限调用这个接口」</td></tr>
+      </table>
+
+      <h5>③ 请求参数（Request Body）—— 你要发送的数据</h5>
+<pre><code>{
+  "post": {
+    "spec": {
+      "title": "我的第一篇文章",         <span style="color:var(--green)">// 必填 - 文章标题</span>
+      "slug": "my-first-post",           <span style="color:var(--green)">// 必填 - 别名，用于生成 URL</span>
+      "deleted": false,                  <span style="color:var(--green)">// 必填 - 是否在回收站</span>
+      "publish": false,                  <span style="color:var(--green)">// 必填 - 是否公开发布</span>
+      "pinned": false,                   <span style="color:var(--green)">// 必填 - 是否置顶</span>
+      "allowComment": true,              <span style="color:var(--green)">// 必填 - 是否允许评论</span>
+      "visible": "PUBLIC",               <span style="color:var(--green)">// 必填 - 可见性</span>
+      "priority": 0,                     <span style="color:var(--green)">// 必填 - 优先级</span>
+      "excerpt": {
+        "autoGenerate": true,            <span style="color:var(--green)">// 必填 - 自动生成摘要</span>
+        "raw": ""
+      },
+      "categories": [],                  <span style="color:var(--text2)">// 可选 - 分类 ID 数组</span>
+      "tags": []                         <span style="color:var(--text2)">// 可选 - 标签 ID 数组</span>
+    },
+    "apiVersion": "content.halo.run/v1alpha1",  <span style="color:var(--green)">// 必填</span>
+    "kind": "Post",                              <span style="color:var(--green)">// 必填</span>
+    "metadata": {
+      "name": "my-first-post-uuid"               <span style="color:var(--green)">// 必填 - 唯一标识</span>
+    }
+  },
+  "content": {
+    "raw": "&lt;p&gt;这是文章内容&lt;/p&gt;",   <span style="color:var(--text2)">// 原始内容</span>
+    "content": "&lt;p&gt;这是文章内容&lt;/p&gt;", <span style="color:var(--text2)">// 渲染内容</span>
+    "rawType": "HTML"                             <span style="color:var(--text2)">// 内容类型</span>
+  }
+}</code></pre>
+
+      <h5>④ 响应结果（Response）—— 后端返回给你的数据</h5>
+<pre><code><span style="color:var(--green)">// HTTP 状态码: 200 OK</span>
+{
+  "spec": {
+    "title": "我的第一篇文章",
+    "slug": "my-first-post",
+    "owner": "meterspheretest",           <span style="color:var(--text2)">// 后端自动填充的创建者</span>
+    "headSnapshot": "fd86c014-...",        <span style="color:var(--text2)">// 后端自动生成的快照 ID</span>
+    "publish": false                      <span style="color:var(--text2)">// 创建后默认为草稿</span>
+  },
+  "status": {
+    "phase": "DRAFT"                      <span style="color:var(--green)">// 文章状态：草稿</span>
+  },
+  "metadata": {
+    "name": "my-first-post-uuid",         <span style="color:var(--text2)">// 后续操作需要用这个 name</span>
+    "version": 1,                         <span style="color:var(--text2)">// 版本号，防并发冲突</span>
+    "creationTimestamp": "2023-02-06T03:08:45Z"
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <h3>3.3 接口文档中的 6 类关键信息</h3>
+  <table>
+    <tr><th>#</th><th>关键信息</th><th>为什么重要</th><th>Halo 文档实例</th></tr>
+    <tr>
+      <td>1</td>
+      <td><strong>接口路径 + 请求方式</strong></td>
+      <td>告诉你「往哪个地址发什么类型的请求」</td>
+      <td><code>POST /apis/.../posts</code></td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><strong>请求头</strong></td>
+      <td>认证方式、内容格式</td>
+      <td><code>Authorization: Basic xxx</code>、<code>Content-Type: application/json</code></td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><strong>请求参数（必填/选填）</strong></td>
+      <td>哪些字段必须填？数据类型是什么？</td>
+      <td><code>title</code>（必填/string）、<code>category</code>（选填/array）</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><strong>响应结果</strong></td>
+      <td>成功后返回什么数据？字段含义是什么？</td>
+      <td><code>{ "status": { "phase": "DRAFT" } }</code></td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td><strong>状态码</strong></td>
+      <td>200 成功、400 参数错误、401 未认证、404 不存在、500 服务器错误</td>
+      <td>200 OK、Set-Cookie 在登录响应中</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td><strong>参数间的关联关系</strong></td>
+      <td>某些参数的值来自其他接口的返回</td>
+      <td>发布接口的 <code>name</code> 来自创建接口返回的 <code>metadata.name</code></td>
+    </tr>
+  </table>
+
+  <div class="callout warn">
+    <span class="icon">⚠️</span>
+    <div><strong>关键：参数的关联关系</strong><br>
+    Halo 文档中反复出现「文章数据中 metadata 中的 name」这句话。这意味着你不能随便填一个 name，必须先调用「创建文章」或「查看文章列表」接口拿到真实的 name，才能在后续的发布、删除、评论等接口中使用。<strong>这种接口间的依赖关系是接口测试中最需要关注的。</strong></div>
+  </div>
+
+  <h3>3.4 接口文档的两种来源</h3>
+  <div class="compare">
+    <div class="compare-card halo">
+      <h5>自动生成（Halo 的方式）</h5>
+<pre><code>// 后端代码中同时定义了路由和文档
+.POST("posts", this::draftPost,
+  builder -> builder
+    .operationId("DraftPost")
+    .description("Draft a post")
+    .requestBody(requestBodyBuilder()
+      .implementation(PostRequest.class))
+)
+// ↑ 自动生成 OpenAPI 规范 → Swagger UI</code></pre>
+      <p style="color:var(--text2); font-size:0.85em; margin-top:8px;">优点：代码改了文档自动更新，不会过时</p>
+    </div>
+    <div class="compare-card echo">
+      <h5>手写文档（你收到的 PDF）</h5>
+<pre><code>3.6 编写一篇文章接口
+接口路径：
+  /apis/api.console.halo.run/v1alpha1/posts
+请求方式：POST
+请求头：Authorization: Basic xxx
+请求参数：{ "post": { ... } }
+响应结果：{ "spec": { ... } }</code></pre>
+      <p style="color:var(--text2); font-size:0.85em; margin-top:8px;">优点：格式自由、可添加详细备注说明</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 第四章 ═══════════ -->
+<div class="chapter" id="ch4">
+  <h2><span class="num">4</span>后端如何创建（定义）一个接口？</h2>
+
+  <h3>4.1 Halo 后端的接口定义——源码剖析</h3>
+  <p>Halo 的每一组接口都定义在一个 <code>Endpoint</code> 类中。以「文章接口」为例：</p>
+  <p class="code-label">PostEndpoint.java —— 文章相关的全部接口</p>
+<pre><code><span style="color:var(--text2)">// 文件位置: application/src/main/java/run/halo/app/core/endpoint/console/PostEndpoint.java</span>
+
+<span style="color:var(--accent2)">@Slf4j</span>                        <span style="color:var(--text2)">// 日志功能</span>
+<span style="color:var(--accent2)">@Component</span>                    <span style="color:var(--text2)">// 注册为 Spring 组件（框架自动发现）</span>
+<span style="color:var(--accent2)">@RequiredArgsConstructor</span>      <span style="color:var(--text2)">// 自动注入依赖</span>
+<span style="color:var(--accent)">public class</span> <span style="color:var(--green)">PostEndpoint</span> <span style="color:var(--accent)">implements</span> CustomEndpoint {
+
+    <span style="color:var(--accent)">private final</span> PostService postService;       <span style="color:var(--text2)">// 业务逻辑服务</span>
+    <span style="color:var(--accent)">private final</span> ReactiveExtensionClient client; <span style="color:var(--text2)">// 数据库操作客户端</span>
+
+    <span style="color:var(--accent2)">@Override</span>
+    <span style="color:var(--accent)">public</span> RouterFunction&lt;ServerResponse&gt; <span style="color:var(--yellow)">endpoint</span>() {
+        <span style="color:var(--accent)">return</span> SpringdocRouteBuilder.route()
+
+            <span style="color:var(--text2)">// ═══ 查询类接口 (GET) ═══</span>
+            .GET(<span style="color:var(--orange)">"posts"</span>,
+                 this::listPost,                    <span style="color:var(--text2)">// 处理函数</span>
+                 builder -> builder
+                    .operationId("ListPosts")        <span style="color:var(--text2)">// API 文档：操作 ID</span>
+                    .description("List posts")       <span style="color:var(--text2)">// API 文档：描述</span>
+                    .tag("PostV1alpha1Console")       <span style="color:var(--text2)">// API 文档：分组标签</span>
+            )
+            .GET(<span style="color:var(--orange)">"posts/{name}/head-content"</span>,  this::fetchHeadContent, ...)
+            .GET(<span style="color:var(--orange)">"posts/{name}/release-content"</span>, this::fetchReleaseContent, ...)
+
+            <span style="color:var(--text2)">// ═══ 创建类接口 (POST) ═══</span>
+            .POST(<span style="color:var(--orange)">"posts"</span>,
+                  this::draftPost,
+                  builder -> builder
+                    .operationId("DraftPost")
+                    .requestBody(requestBodyBuilder()
+                        .implementation(PostRequest.class))  <span style="color:var(--text2)">// 请求体类型</span>
+            )
+
+            <span style="color:var(--text2)">// ═══ 修改类接口 (PUT) ═══</span>
+            .PUT(<span style="color:var(--orange)">"posts/{name}"</span>,          this::updatePost, ...)
+            .PUT(<span style="color:var(--orange)">"posts/{name}/publish"</span>,   this::publishPost, ...)
+            .PUT(<span style="color:var(--orange)">"posts/{name}/unpublish"</span>, this::unpublishPost, ...)
+            .PUT(<span style="color:var(--orange)">"posts/{name}/recycle"</span>,   this::recyclePost, ...)
+
+            <span style="color:var(--text2)">// ═══ 删除类接口 (DELETE) ═══</span>
+            .DELETE(<span style="color:var(--orange)">"posts/{name}/content"</span>, this::deleteContent, ...)
+
+            .build();
+    }
+}</code></pre>
+
+  <h3>4.2 Halo 的全部文章相关接口一览</h3>
+  <table>
+    <tr><th>方法</th><th>路径</th><th>操作</th><th>对应文档章节</th></tr>
+    <tr><td><span class="method-badge get" style="font-size:0.7em">GET</span></td><td><code>posts</code></td><td>获取文章列表</td><td>3.1</td></tr>
+    <tr><td><span class="method-badge get" style="font-size:0.7em">GET</span></td><td><code>posts/{name}/head-content</code></td><td>获取文章编辑内容</td><td>—</td></tr>
+    <tr><td><span class="method-badge get" style="font-size:0.7em">GET</span></td><td><code>posts/{name}/release-content</code></td><td>获取已发布内容</td><td>3.3</td></tr>
+    <tr><td><span class="method-badge post" style="font-size:0.7em">POST</span></td><td><code>posts</code></td><td>创建文章草稿</td><td>3.6</td></tr>
+    <tr><td><span class="method-badge put" style="font-size:0.7em">PUT</span></td><td><code>posts/{name}</code></td><td>更新文章信息</td><td>—</td></tr>
+    <tr><td><span class="method-badge put" style="font-size:0.7em">PUT</span></td><td><code>posts/{name}/content</code></td><td>更新文章内容</td><td>—</td></tr>
+    <tr><td><span class="method-badge put" style="font-size:0.7em">PUT</span></td><td><code>posts/{name}/publish</code></td><td>发布文章</td><td>3.7</td></tr>
+    <tr><td><span class="method-badge put" style="font-size:0.7em">PUT</span></td><td><code>posts/{name}/unpublish</code></td><td>取消发布</td><td>—</td></tr>
+    <tr><td><span class="method-badge put" style="font-size:0.7em">PUT</span></td><td><code>posts/{name}/recycle</code></td><td>回收（软删除）</td><td>3.8</td></tr>
+    <tr><td><span class="method-badge delete" style="font-size:0.7em">DELETE</span></td><td><code>posts/{name}/content</code></td><td>删除内容快照</td><td>—</td></tr>
+  </table>
+
+  <h3>4.3 后端处理函数做了什么？</h3>
+  <p>每个路由后面的 <code>this::draftPost</code> 就是真正处理请求的方法。以创建文章为例：</p>
+<pre><code><span style="color:var(--text2)">// 简化后的处理逻辑</span>
+<span style="color:var(--accent)">private</span> Mono&lt;ServerResponse&gt; <span style="color:var(--yellow)">draftPost</span>(ServerRequest request) {
+    <span style="color:var(--accent)">return</span> request.bodyToMono(PostRequest.class)  <span style="color:var(--text2)">// ① 解析请求体为 Java 对象</span>
+        .flatMap(postService::draftPost)            <span style="color:var(--text2)">// ② 调用业务服务处理</span>
+        .flatMap(post -> ServerResponse              <span style="color:var(--text2)">// ③ 构建响应</span>
+            .ok()                                    <span style="color:var(--text2)">//    状态码 200</span>
+            .bodyValue(post)                         <span style="color:var(--text2)">//    返回文章数据</span>
+        );
+}
+
+<span style="color:var(--text2)">// PostService.draftPost() 内部做的事：</span>
+<span style="color:var(--text2)">// ① 校验标题、slug 等必填字段</span>
+<span style="color:var(--text2)">// ② 创建内容快照（Snapshot）</span>
+<span style="color:var(--text2)">// ③ 创建文章记录（Post），关联快照</span>
+<span style="color:var(--text2)">// ④ 返回创建好的文章对象</span></code></pre>
+
+  <h3>4.4 同时也看看评论接口——更简单的例子</h3>
+  <p class="code-label">CommentEndpoint.java —— 评论相关接口</p>
+<pre><code><span style="color:var(--accent)">public class</span> <span style="color:var(--green)">CommentEndpoint</span> <span style="color:var(--accent)">implements</span> CustomEndpoint {
+
+    <span style="color:var(--accent2)">@Override</span>
+    <span style="color:var(--accent)">public</span> RouterFunction&lt;ServerResponse&gt; <span style="color:var(--yellow)">endpoint</span>() {
+        <span style="color:var(--accent)">return</span> SpringdocRouteBuilder.route()
+            .GET(<span style="color:var(--orange)">"comments"</span>,              this::listComments,  ...)  <span style="color:var(--text2)">// 获取评论列表</span>
+            .POST(<span style="color:var(--orange)">"comments"</span>,             this::createComment, ...)  <span style="color:var(--text2)">// 发表评论</span>
+            .POST(<span style="color:var(--orange)">"comments/{name}/reply"</span>, this::createReply,   ...)  <span style="color:var(--text2)">// 回复评论</span>
+            .build();
+    }
+}</code></pre>
+  <p>对照接口文档 3.9-3.12 节，你可以发现<strong>每个 Java 方法都对应文档中的一个接口描述</strong>。</p>
+</div>
+
+<!-- ═══════════ 第五章 ═══════════ -->
+<div class="chapter" id="ch5">
+  <h2><span class="num">5</span>前端如何调用一个接口？</h2>
+
+  <h3>5.1 Halo 的自动化方式：后端定义 → 自动生成 SDK → 前端调用</h3>
+  <div class="flow-diagram"><span class="green">后端 PostEndpoint.java</span>           <span class="orange">自动化工具</span>              <span class="pink">前端 PostList.vue</span>
+───────────────────           ──────────────           ────────────────
+
+operationId: "ListPosts"                              consoleApiClient
+参数类型: PostRequest       ──→ 生成 TypeScript SDK ──→   .content.post
+返回类型: ListResult                                     .listPosts({
+                                                          page: 1,
+                                                          size: 10,
+                                                          keyword: "Halo"
+                                                        })
+
+<span class="highlight">关键优势：</span>
+✅ 方法名自动对应（ListPosts → listPosts）
+✅ 参数有 TypeScript 类型提示，编辑器自动补全
+✅ 返回值有类型定义，取字段时不会拼错
+✅ URL 由 SDK 管理，永远不会写错路径</div>
+
+  <h3>5.2 前端代码实际长什么样</h3>
+  <p class="code-label">PostList.vue —— 文章列表页的 API 调用</p>
+<pre><code><span style="color:var(--text2)">// ═══ 获取文章列表 ═══</span>
+const { data } = await <span style="color:var(--accent)">consoleApiClient</span>.content.post.<span style="color:var(--yellow)">listPosts</span>({
+  page: page.value,              <span style="color:var(--text2)">// 第几页</span>
+  size: size.value,              <span style="color:var(--text2)">// 每页多少条</span>
+  keyword: keyword.value,        <span style="color:var(--text2)">// 搜索关键词</span>
+  sort: [selectedSort.value],    <span style="color:var(--text2)">// 排序方式</span>
+  labelSelector,                 <span style="color:var(--text2)">// 标签过滤</span>
+  fieldSelector,                 <span style="color:var(--text2)">// 字段过滤</span>
+});
+<span style="color:var(--text2)">// data.items → 文章数组    data.total → 总数</span>
+
+<span style="color:var(--text2)">// ═══ 发布文章 ═══</span>
+await <span style="color:var(--accent)">consoleApiClient</span>.content.post.<span style="color:var(--yellow)">publishPost</span>({
+  name: post.metadata.name       <span style="color:var(--text2)">// 文章的唯一标识</span>
+});
+
+<span style="color:var(--text2)">// ═══ 回收删除（批量）═══</span>
+<span style="color:var(--accent)">for</span> (const name of selectedNames) {
+  await <span style="color:var(--accent)">consoleApiClient</span>.content.post.<span style="color:var(--yellow)">recyclePost</span>({ name });
+}
+
+<span style="color:var(--text2)">// ═══ 取消发布（批量）═══</span>
+<span style="color:var(--accent)">for</span> (const name of selectedNames) {
+  await <span style="color:var(--accent)">consoleApiClient</span>.content.post.<span style="color:var(--yellow)">unpublishPost</span>({ name });
+}</code></pre>
+
+  <p class="code-label">PostEditor.vue —— 文章编辑页的 API 调用</p>
+<pre><code><span style="color:var(--text2)">// ═══ 创建文章草稿 ═══</span>
+const { data } = await <span style="color:var(--accent)">consoleApiClient</span>.content.post.<span style="color:var(--yellow)">draftPost</span>({
+  post: {
+    spec: { title: "我的文章", slug: "my-post" },
+    apiVersion: "content.halo.run/v1alpha1",
+    kind: "Post",
+    metadata: { name: generateUUID() }
+  },
+  content: {
+    raw: "&lt;p&gt;文章正文&lt;/p&gt;",
+    content: "&lt;p&gt;文章正文&lt;/p&gt;",
+    rawType: "HTML"
+  }
+});
+
+<span style="color:var(--text2)">// ═══ 获取文章内容用于编辑 ═══</span>
+const { data: content } = await <span style="color:var(--accent)">consoleApiClient</span>.content.post
+  .<span style="color:var(--yellow)">fetchPostHeadContent</span>({ name: postName });
+
+<span style="color:var(--text2)">// ═══ 更新文章内容 ═══</span>
+await <span style="color:var(--accent)">consoleApiClient</span>.content.post.<span style="color:var(--yellow)">updatePostContent</span>({
+  name: postName,
+  content: { raw: newContent, content: newHtml, rawType: "HTML" }
+});</code></pre>
+
+  <h3>5.3 前端 SDK 方法与后端路由/文档的完整对应关系</h3>
+  <table>
+    <tr><th>前端调用</th><th>实际发出的 HTTP 请求</th><th>后端处理方法</th><th>文档章节</th></tr>
+    <tr>
+      <td><code>.listPosts({...})</code></td>
+      <td><code>GET /posts?page=1&size=10</code></td>
+      <td><code>listPost()</code></td>
+      <td>3.1</td>
+    </tr>
+    <tr>
+      <td><code>.draftPost({...})</code></td>
+      <td><code>POST /posts</code> + JSON Body</td>
+      <td><code>draftPost()</code></td>
+      <td>3.6</td>
+    </tr>
+    <tr>
+      <td><code>.publishPost({name})</code></td>
+      <td><code>PUT /posts/{name}/publish</code></td>
+      <td><code>publishPost()</code></td>
+      <td>3.7</td>
+    </tr>
+    <tr>
+      <td><code>.recyclePost({name})</code></td>
+      <td><code>PUT /posts/{name}/recycle</code></td>
+      <td><code>recyclePost()</code></td>
+      <td>3.8</td>
+    </tr>
+    <tr>
+      <td><code>.unpublishPost({name})</code></td>
+      <td><code>PUT /posts/{name}/unpublish</code></td>
+      <td><code>unpublishPost()</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>.fetchPostHeadContent({name})</code></td>
+      <td><code>GET /posts/{name}/head-content</code></td>
+      <td><code>fetchHeadContent()</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>.fetchReleaseContent({name})</code></td>
+      <td><code>GET /posts/{name}/release-content</code></td>
+      <td><code>fetchReleaseContent()</code></td>
+      <td>3.3</td>
+    </tr>
+  </table>
+
+  <div class="callout success">
+    <span class="icon">✅</span>
+    <div><strong>一条线串起来了</strong>：前端的 <code>.publishPost({name})</code> → 变成 <code>PUT /posts/{name}/publish</code> → 后端 <code>PostEndpoint.java</code> 的 <code>publishPost()</code> 方法处理 → 接口文档第 3.7 节描述了这个过程。<strong>同一个接口在四个地方出现，形式不同但本质一样。</strong></div>
+  </div>
+</div>
+
+<!-- ═══════════ 第六章 ═══════════ -->
+<div class="chapter" id="ch6">
+  <h2><span class="num">6</span>认证是怎么做的？</h2>
+  <p>Halo 接口文档 V2.2 详细介绍了三种认证方式。认证的核心问题是：<strong>后端怎么知道「你是谁」以及「你有没有权限」？</strong></p>
+
+  <h3>6.1 方式一：Basic Auth（基本认证）—— 最简单</h3>
+  <div class="callout info">
+    <span class="icon">🔑</span>
+    <div>文档原文：「通过简单设置 HTTP 请求头 Authorization: Basic [base64编码] 即可实现认证」</div>
+  </div>
+
+  <div class="flow-diagram"><span class="highlight">原理：</span>
+用户名: meterspheretest
+密码:   Fit2cloud@2023
+                ↓
+拼接为: meterspheretest:Fit2cloud@2023
+                ↓
+Base64 编码: bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz
+                ↓
+放入请求头: <span class="green">Authorization: Basic bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz</span>
+                ↓
+<span class="orange">后端收到后：</span>
+① Base64 解码 → 得到 meterspheretest:Fit2cloud@2023
+② 拆分用户名和密码
+③ 验证密码是否正确
+④ 正确 → 放行；错误 → 返回 401 Unauthorized</div>
+
+  <p><strong>生成 Base64 编码的方法</strong>（文档中提到的）：</p>
+<pre><code><span style="color:var(--text2)"># Linux / macOS 终端：</span>
+echo -n "meterspheretest:Fit2cloud@2023" | base64
+<span style="color:var(--green)">→ bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz</span>
+
+<span style="color:var(--text2)"># Windows：访问 https://www.bejson.com/enc/base64 在线生成</span></code></pre>
+
+  <div class="callout warn">
+    <span class="icon">⚠️</span>
+    <div><strong>Basic Auth 的特点</strong>：每次请求都要带用户名密码（虽然是编码过的），适合简单场景和接口测试。Halo 接口文档中所有的 API 示例都使用了这种方式。</div>
+  </div>
+
+  <h3>6.2 方式二：表单认证（Session）—— 模拟浏览器登录</h3>
+  <p>这种方式模拟了用户在浏览器中填写登录表单的过程，分为三步：</p>
+
+  <div class="step">
+    <span class="step-num">1</span>
+    <div class="step-content">
+      <h4>获取 CSRF 令牌</h4>
+<pre><code><span style="color:var(--green)">GET</span> http://halo.edu.metersphere.com/login
+
+<span style="color:var(--text2)">→ 返回 HTML 页面，其中包含：</span>
+&lt;input type="hidden" name="_csrf" value="<span style="color:var(--orange)">fff63640-029d-4857-9312-29e93229d6e0</span>"&gt;
+
+<span style="color:var(--text2)">→ 响应头中包含：</span>
+Cookie: XSRF-TOKEN=<span style="color:var(--orange)">fff63640-029d-4857-9312-29e93229d6e0</span></code></pre>
+      <p style="color:var(--text2); font-size:0.88em; margin-top:6px;">CSRF 令牌用于防止跨站请求伪造攻击——确保请求确实来自 Halo 自己的页面。</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-num">2</span>
+    <div class="step-content">
+      <h4>发送登录请求</h4>
+<pre><code><span style="color:var(--orange)">POST</span> http://halo.edu.metersphere.com/login
+Content-Type: application/x-www-form-urlencoded
+Cookie: XSRF-TOKEN=fff63640-029d-4857-9312-29e93229d6e0
+
+_csrf=fff63640-029d-4857-9312-29e93229d6e0
+&username=meterspheretest
+&password=Fit2cloud@2023
+
+<span style="color:var(--text2)">→ 返回 200 + 响应头中：</span>
+Set-Cookie: <span style="color:var(--green)">SESSION=d04db9f7-d2a6-4b7c-9845-ef790eb4a980</span></code></pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <span class="step-num">3</span>
+    <div class="step-content">
+      <h4>后续请求携带 Session Cookie</h4>
+<pre><code><span style="color:var(--green)">GET</span> /apis/api.console.halo.run/v1alpha1/posts
+Cookie: SESSION=<span style="color:var(--green)">d04db9f7-d2a6-4b7c-9845-ef790eb4a980</span>
+
+<span style="color:var(--text2)">→ 后端通过 Session ID 识别出用户身份，不需要再带用户名密码</span></code></pre>
+    </div>
+  </div>
+
+  <h3>6.3 方式三：MeterSphere 全局认证</h3>
+  <p>这是在 MeterSphere 测试平台中使用的方式——在环境配置中选择 Basic Auth，填入用户名和密码，平台会<strong>自动为每个请求加上 Authorization 头</strong>，不需要手动填写。</p>
+
+  <h3>6.4 三种认证方式对比</h3>
+  <table>
+    <tr><th>维度</th><th>Basic Auth</th><th>表单认证（Session）</th><th>MeterSphere 认证</th></tr>
+    <tr><td>复杂度</td><td>★☆☆ 最简单</td><td>★★★ 最复杂（3 步）</td><td>★☆☆ 配置后自动</td></tr>
+    <tr><td>适用场景</td><td>接口测试、脚本调用</td><td>模拟真实浏览器登录</td><td>自动化测试平台</td></tr>
+    <tr><td>每次请求带什么</td><td><code>Authorization: Basic xxx</code></td><td><code>Cookie: SESSION=xxx</code></td><td>平台自动注入</td></tr>
+    <tr><td>安全性</td><td>低（密码每次传输）</td><td>高（只传 Session ID）</td><td>取决于配置</td></tr>
+    <tr><td>Postman 中使用</td><td>直接加 Header</td><td>需要先调登录接口</td><td>不适用</td></tr>
+  </table>
+
+  <div class="callout info">
+    <span class="icon">💡</span>
+    <div><strong>Halo 文档明确推荐</strong>：「以下接口采用基本认证调用」。所以在 Postman 中测试 Halo 接口时，直接使用 Basic Auth 是最方便的。</div>
+  </div>
+</div>
+
+<!-- ═══════════ 第七章 ═══════════ -->
+<div class="chapter" id="ch7">
+  <h2><span class="num">7</span>如何调试一个接口？—— Postman 实战</h2>
+
+  <h3>7.1 环境准备</h3>
+  <table>
+    <tr><th>工具</th><th>说明</th></tr>
+    <tr><td>Postman</td><td>下载安装 <a href="https://www.postman.com/downloads/" target="_blank">postman.com/downloads</a></td></tr>
+    <tr><td>Halo 服务地址</td><td><code>http://halo.edu.metersphere.com</code>（文档中提供的测试环境）</td></tr>
+    <tr><td>测试账号</td><td>用户名: <code>meterspheretest</code>，密码: <code>Fit2cloud@2023</code></td></tr>
+    <tr><td>认证方式</td><td>Basic Auth → <code>Authorization: Basic bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz</code></td></tr>
+  </table>
+
+  <h3>7.2 实战：按文档测试「查看文章列表」接口</h3>
+
+  <div class="api-card">
+    <div class="api-card-header">
+      <span class="method-badge get">GET</span>
+      <span class="path">/apis/api.console.halo.run/v1alpha1/posts</span>
+      <span class="desc">文档 3.1 节</span>
+    </div>
+    <div class="api-card-body">
+      <h5>在 Postman 中的配置</h5>
+      <table>
+        <tr><th>项目</th><th>填什么</th></tr>
+        <tr><td>方法</td><td>选择 <code>GET</code></td></tr>
+        <tr><td>URL</td><td><code>http://halo.edu.metersphere.com/apis/api.console.halo.run/v1alpha1/posts</code></td></tr>
+        <tr><td>Params</td><td><code>page</code> = <code>1</code>，<code>size</code> = <code>10</code></td></tr>
+        <tr><td>Headers</td><td><code>Authorization</code> = <code>Basic bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz</code></td></tr>
+      </table>
+
+      <h5>点击 Send 后的预期响应</h5>
+<pre><code>{
+  "page": 1,
+  "size": 10,
+  "total": 1,
+  "items": [
+    {
+      "post": {
+        "spec": {
+          "title": "Hello Halo",
+          "slug": "hello-halo",
+          "publish": true,
+          "visible": "PUBLIC"
+        },
+        "status": { "phase": "PUBLISHED" },
+        "metadata": {
+          "name": "<span style="color:var(--green)">5152aea5-c2e8-4717-8bba-2263d46e19d5</span>"  <span style="color:var(--text2)">// ← 记住这个 name！</span>
+        }
+      },
+      "stats": { "visit": 20, "upvote": 0, "totalComment": 6 }
+    }
+  ],
+  "hasNext": false,
+  "totalPages": 1
+}</code></pre>
+
+      <h5>你应该验证什么？</h5>
+      <ul>
+        <li>✅ 状态码是 <code>200 OK</code></li>
+        <li>✅ 返回的 JSON 中有 <code>items</code> 数组</li>
+        <li>✅ <code>total</code> 数量与实际文章数一致</li>
+        <li>✅ 每篇文章都有 <code>metadata.name</code>（后续接口需要用）</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>7.3 实战：按文档测试「创建文章」接口</h3>
+
+  <div class="api-card">
+    <div class="api-card-header">
+      <span class="method-badge post">POST</span>
+      <span class="path">/apis/api.console.halo.run/v1alpha1/posts</span>
+      <span class="desc">文档 3.6 节</span>
+    </div>
+    <div class="api-card-body">
+      <h5>在 Postman 中的配置</h5>
+      <table>
+        <tr><th>项目</th><th>填什么</th></tr>
+        <tr><td>方法</td><td><code>POST</code></td></tr>
+        <tr><td>URL</td><td><code>http://halo.edu.metersphere.com/apis/api.console.halo.run/v1alpha1/posts</code></td></tr>
+        <tr><td>Headers</td><td><code>Authorization: Basic xxx</code><br><code>Content-Type: application/json</code></td></tr>
+        <tr><td>Body</td><td>选 <code>raw</code> → <code>JSON</code>，填入下方内容</td></tr>
+      </table>
+
+      <h5>请求 Body</h5>
+<pre><code>{
+  "post": {
+    "spec": {
+      "title": "Postman 测试文章",
+      "slug": "postman-test-article",
+      "deleted": false,
+      "publish": false,
+      "pinned": false,
+      "allowComment": true,
+      "visible": "PUBLIC",
+      "priority": 0,
+      "excerpt": { "autoGenerate": true, "raw": "" }
+    },
+    "apiVersion": "content.halo.run/v1alpha1",
+    "kind": "Post",
+    "metadata": { "name": "postman-test-001" }
+  },
+  "content": {
+    "raw": "&lt;p&gt;这是通过 Postman 创建的测试文章&lt;/p&gt;",
+    "content": "&lt;p&gt;这是通过 Postman 创建的测试文章&lt;/p&gt;",
+    "rawType": "HTML"
+  }
+}</code></pre>
+
+      <h5>预期响应（200 OK）</h5>
+<pre><code>{
+  "spec": {
+    "title": "Postman 测试文章",
+    "owner": "meterspheretest",        <span style="color:var(--text2)">// 后端根据认证信息自动填充</span>
+    "headSnapshot": "xxxx-xxxx-xxxx"   <span style="color:var(--text2)">// 后端自动生成</span>
+  },
+  "status": {
+    "phase": "<span style="color:var(--orange)">DRAFT</span>"                   <span style="color:var(--text2)">// 创建后默认是草稿</span>
+  },
+  "metadata": {
+    "name": "postman-test-001",
+    "version": 1
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <h3>7.4 实战：按文档测试「发布文章」接口</h3>
+
+  <div class="api-card">
+    <div class="api-card-header">
+      <span class="method-badge put">PUT</span>
+      <span class="path">/apis/api.console.halo.run/v1alpha1/posts/<span style="color:var(--orange)">${name}</span>/publish</span>
+      <span class="desc">文档 3.7 节</span>
+    </div>
+    <div class="api-card-body">
+      <h5>Postman 配置</h5>
+      <table>
+        <tr><th>项目</th><th>填什么</th></tr>
+        <tr><td>方法</td><td><code>PUT</code></td></tr>
+        <tr><td>URL</td><td><code>http://halo.edu.metersphere.com/apis/api.console.halo.run/v1alpha1/posts/<span style="color:var(--orange)">postman-test-001</span>/publish</code></td></tr>
+        <tr><td>Headers</td><td><code>Authorization: Basic xxx</code></td></tr>
+      </table>
+
+      <div class="callout warn" style="margin-top: 12px;">
+        <span class="icon">⚠️</span>
+        <div>URL 中的 <code style="color:var(--orange)">postman-test-001</code> 就是上一步创建文章时 <code>metadata.name</code> 的值。<strong>这就是「参数关联」—— 一个接口的返回值作为另一个接口的输入。</strong></div>
+      </div>
+
+      <h5>预期响应的关键变化</h5>
+<pre><code>{
+  "spec": {
+    "publish": <span style="color:var(--green)">true</span>,                     <span style="color:var(--text2)">// false → true</span>
+    "publishTime": "2023-02-09T10:19:14Z"  <span style="color:var(--text2)">// 新增发布时间</span>
+  },
+  "status": {
+    "phase": "<span style="color:var(--green)">PUBLISHED</span>"                  <span style="color:var(--text2)">// DRAFT → PUBLISHED</span>
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <h3>7.5 实战：按文档测试「发表评论」接口</h3>
+
+  <div class="api-card">
+    <div class="api-card-header">
+      <span class="method-badge post">POST</span>
+      <span class="path">/apis/api.console.halo.run/v1alpha1/comments</span>
+      <span class="desc">文档 3.9 节</span>
+    </div>
+    <div class="api-card-body">
+      <h5>请求 Body</h5>
+<pre><code>{
+  "raw": "这是通过 Postman 发的评论",
+  "content": "这是通过 Postman 发的评论",
+  "allowNotification": true,
+  "subjectRef": {
+    "group": "content.halo.run",
+    "kind": "Post",
+    "name": "<span style="color:var(--orange)">postman-test-001</span>",  <span style="color:var(--text2)">// ← 又是关联参数：文章的 metadata.name</span>
+    "version": "v1alpha1"
+  }
+}</code></pre>
+
+      <h5>预期响应</h5>
+<pre><code>{
+  "spec": {
+    "raw": "这是通过 Postman 发的评论",
+    "owner": { "kind": "User", "name": "meterspheretest" },
+    "approved": <span style="color:var(--orange)">false</span>           <span style="color:var(--text2)">// 评论默认需要审核</span>
+  },
+  "metadata": {
+    "name": "<span style="color:var(--green)">e421a0f4-7fa8-...</span>"  <span style="color:var(--text2)">// 评论的唯一标识（后续审核/删除需要）</span>
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <h3>7.6 常见调试错误及排查方法</h3>
+  <table>
+    <tr><th>错误现象</th><th>状态码</th><th>原因</th><th>解决方法</th></tr>
+    <tr><td>未授权</td><td><code>401</code></td><td>没加 Authorization 头，或密码错误</td><td>检查 Basic Auth 的 Base64 编码</td></tr>
+    <tr><td>参数错误</td><td><code>400</code></td><td>必填字段缺失或格式错误</td><td>对照文档检查每个必填字段</td></tr>
+    <tr><td>资源不存在</td><td><code>404</code></td><td>URL 路径错误，或 <code>name</code> 不存在</td><td>先调用列表接口确认资源存在</td></tr>
+    <tr><td>服务器错误</td><td><code>500</code></td><td>后端代码 Bug</td><td>检查后端日志</td></tr>
+    <tr><td>CORS 错误</td><td>浏览器拦截</td><td>跨域配置问题</td><td>用 Postman 绕过（Postman 不受 CORS 限制）</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════ 第八章 ═══════════ -->
+<div class="chapter" id="ch8">
+  <h2><span class="num">8</span>完整链路串讲：从写文章到发布的全部接口调用</h2>
+
+  <p>下面用 Halo 的「创建文章 → 发布 → 评论 → 审核 → 回收」这个完整业务流程，串起前面学到的所有知识：</p>
+
+  <div class="flow-diagram">
+<span class="highlight">步骤 1：创建文章草稿</span>
+══════════════════════════════════════════════════════════════════
+前端代码:     consoleApiClient.content.post.draftPost({...})
+实际请求:     <span class="orange">POST</span> /apis/api.console.halo.run/v1alpha1/posts
+后端处理:     PostEndpoint.draftPost() → PostService.draftPost()
+数据库:       创建 Post 记录 (phase: DRAFT)
+返回结果:     { metadata: { name: <span class="green">"abc-123"</span> }, status: { phase: "DRAFT" } }
+文档章节:     3.6
+                │
+                │ 拿到 name = <span class="green">"abc-123"</span>
+                ▼
+<span class="highlight">步骤 2：发布文章</span>
+══════════════════════════════════════════════════════════════════
+前端代码:     consoleApiClient.content.post.publishPost({ name: <span class="green">"abc-123"</span> })
+实际请求:     <span class="orange">PUT</span> /apis/.../posts/<span class="green">abc-123</span>/publish
+后端处理:     PostEndpoint.publishPost() → 修改 publish=true
+数据库:       更新 Post 记录 (phase: DRAFT → PUBLISHED)
+返回结果:     { status: { phase: <span class="green">"PUBLISHED"</span> }, spec: { publishTime: "..." } }
+文档章节:     3.7
+                │
+                │ 文章已上线，用户可以评论
+                ▼
+<span class="highlight">步骤 3：发表评论</span>
+══════════════════════════════════════════════════════════════════
+前端代码:     consoleApiClient.comment.createComment({...})
+实际请求:     <span class="orange">POST</span> /apis/.../comments  (body 中 subjectRef.name = <span class="green">"abc-123"</span>)
+后端处理:     CommentEndpoint.createComment()
+数据库:       创建 Comment 记录 (approved: false)
+返回结果:     { metadata: { name: <span class="pink">"comment-456"</span> }, spec: { approved: false } }
+文档章节:     3.9
+                │
+                │ 拿到评论 name = <span class="pink">"comment-456"</span>
+                ▼
+<span class="highlight">步骤 4：审核评论</span>
+══════════════════════════════════════════════════════════════════
+实际请求:     <span class="orange">PUT</span> /apis/.../comments/<span class="pink">comment-456</span>  (body 中 approved: true)
+后端处理:     更新 approved: false → true
+返回结果:     { spec: { approved: <span class="green">true</span> } }
+文档章节:     3.10
+                │
+                ▼
+<span class="highlight">步骤 5：回收文章（软删除）</span>
+══════════════════════════════════════════════════════════════════
+前端代码:     consoleApiClient.content.post.recyclePost({ name: <span class="green">"abc-123"</span> })
+实际请求:     <span class="orange">PUT</span> /apis/.../posts/<span class="green">abc-123</span>/recycle
+后端处理:     PostEndpoint.recyclePost() → 修改 deleted=true
+数据库:       更新 Post 记录 (deleted: false → true)
+返回结果:     { spec: { deleted: <span class="red">true</span> } }
+文档章节:     3.8</div>
+
+  <div class="callout success">
+    <span class="icon">🎯</span>
+    <div>
+      <strong>看到规律了吗？</strong>每一步都是同样的模式：
+      <ol style="margin-top:8px;">
+        <li><strong>前端调用</strong> SDK 方法（或你用 Postman 手动发请求）</li>
+        <li>变成一个 <strong>HTTP 请求</strong>（方法 + URL + 参数）</li>
+        <li>后端 <strong>Endpoint 匹配路由</strong>，调用处理方法</li>
+        <li>处理方法<strong>操作数据库</strong>，返回 JSON</li>
+        <li>前端（或 Postman）收到响应，<strong>从中提取 name 等关键字段</strong>，供下一个接口使用</li>
+      </ol>
+      <p style="margin-top:8px;"><strong>这就是接口的全部。</strong>掌握了这个模式，任何项目的接口你都能看懂、能测、能调。</p>
+    </div>
+  </div>
+
+  <h3>8.1 Postman 中测试这个完整流程的技巧</h3>
+  <p>在 Postman 中，你可以创建一个 <strong>Collection（集合）</strong>，按顺序排列这 5 个请求：</p>
+
+  <div class="flow-diagram"><span class="highlight">Postman Collection: "Halo 文章完整流程测试"</span>
+═══════════════════════════════════════════
+📁 1. 创建文章 (POST)
+     → Tests 脚本中提取 name: pm.environment.set("postName", jsonData.metadata.name)
+📁 2. 发布文章 (PUT)
+     → URL 中使用变量: /posts/{{postName}}/publish
+📁 3. 发表评论 (POST)
+     → Body 中使用变量: "name": "{{postName}}"
+     → Tests 中提取: pm.environment.set("commentName", jsonData.metadata.name)
+📁 4. 审核评论 (PUT)
+     → URL 中使用变量: /comments/{{commentName}}
+📁 5. 回收文章 (PUT)
+     → URL 中使用变量: /posts/{{postName}}/recycle
+
+<span class="green">点击 "Run Collection" → 5 个请求按顺序自动执行 → 完整流程一键测完！</span></div>
+</div>
+
+<!-- ═══════════ 页脚 ═══════════ -->
+<div style="text-align:center; padding: 60px 0 40px; color: var(--text2); font-size: 0.88em;">
+  <p style="margin-bottom: 8px;">基于 <a href="https://github.com/halo-dev/halo" target="_blank">Halo 开源项目</a> 源码 + <strong>Halo 接口文档 V2.2</strong> 整理</p>
+  <p>数据来源：Halo PostEndpoint.java · CommentEndpoint.java · PostList.vue · PostEditor.vue</p>
+</div>
+
+</body>
+</html>

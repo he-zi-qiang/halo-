@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halo 知识盲区整理 · 我还不熟的知识点</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e1a; --surface: #131a2e; --surface2: #1c2540; --surface3: #243050;
+    --border: #2a3555; --text: #e2e8f0; --text2: #8892b0;
+    --blue: #64ffda; --purple: #bd93f9; --pink: #ff79c6;
+    --orange: #ffb86c; --green: #50fa7b; --red: #ff5555;
+    --yellow: #f1fa8c; --cyan: #8be9fd;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.8;
+    overflow-x: hidden;
+  }
+  code, pre { font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace; }
+
+  /* ═══ 粒子背景 ═══ */
+  #particles {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+  }
+
+  /* ═══ 滚动进度条 ═══ */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 3px; z-index: 1000;
+    background: linear-gradient(90deg, var(--orange), var(--red), var(--pink));
+    transition: width 0.15s;
+  }
+
+  .reveal {
+    opacity: 0; transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* ═══ Hero ═══ */
+  .hero {
+    text-align: center; padding: 80px 24px 50px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,184,108,0.06) 0%, transparent 70%);
+    position: relative; z-index: 1;
+  }
+  .hero h1 {
+    font-size: 2.6em; font-weight: 900; margin-bottom: 16px;
+    background: linear-gradient(135deg, var(--orange), var(--red), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero .subtitle { color: var(--text2); font-size: 1.1em; max-width: 700px; margin: 0 auto 20px; }
+  .hero .badge {
+    display: inline-block; background: var(--surface2); color: var(--orange);
+    padding: 6px 18px; border-radius: 20px; font-size: 0.85em;
+    border: 1px solid rgba(255,184,108,0.2);
+  }
+
+  /* ═══ 侧边导航 ═══ */
+  .side-nav {
+    position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+    z-index: 100; display: flex; flex-direction: column; gap: 8px;
+  }
+  @media (max-width: 900px) { .side-nav { display: none; } }
+  .side-nav a {
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--text2);
+    transition: all 0.3s; position: relative; display: block;
+  }
+  .side-nav a:hover, .side-nav a.active {
+    border-color: var(--orange); background: var(--orange);
+    box-shadow: 0 0 10px var(--orange);
+  }
+  .side-nav a .tip {
+    position: absolute; right: 22px; top: 50%; transform: translateY(-50%);
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 4px 12px; border-radius: 6px; font-size: 0.75em;
+    white-space: nowrap; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s; color: var(--text);
+  }
+  .side-nav a:hover .tip { opacity: 1; }
+
+  /* ═══ 知识地图总览 ═══ */
+  .map-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px; margin: 20px 0;
+  }
+  .map-cell {
+    padding: 16px; border-radius: 10px; text-align: center;
+    font-size: 0.85em; font-weight: 600; cursor: pointer;
+    transition: all 0.3s; border: 1px solid var(--border);
+    position: relative;
+  }
+  .map-cell:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+  .map-cell .status {
+    position: absolute; top: 8px; right: 8px; font-size: 0.7em;
+    padding: 1px 6px; border-radius: 4px; font-weight: 700;
+  }
+  .map-cell.mastered { background: rgba(80,250,123,0.08); border-color: rgba(80,250,123,0.3); }
+  .map-cell.mastered .status { background: rgba(80,250,123,0.15); color: var(--green); }
+  .map-cell.partial { background: rgba(255,184,108,0.08); border-color: rgba(255,184,108,0.3); }
+  .map-cell.partial .status { background: rgba(255,184,108,0.15); color: var(--orange); }
+  .map-cell.weak { background: rgba(255,85,85,0.08); border-color: rgba(255,85,85,0.3); }
+  .map-cell.weak .status { background: rgba(255,85,85,0.15); color: var(--red); }
+
+  /* ═══ 区域标题 ═══ */
+  .zone {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 60px auto;
+    padding: 0 24px;
+  }
+  .zone-header {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+  }
+  .zone-icon {
+    width: 48px; height: 48px; border-radius: 12px; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 1.4em; font-weight: 900; flex-shrink: 0;
+  }
+  .zone-header h2 { font-size: 1.5em; font-weight: 800; }
+
+  .zone-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .zone-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  }
+
+  /* ═══ 知识点条目 ═══ */
+  .kp-list { margin: 0; padding: 0; list-style: none; }
+  .kp-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 14px 16px; margin: 6px 0;
+    background: var(--surface2); border-radius: 10px;
+    border: 1px solid var(--border); transition: all 0.3s;
+    cursor: pointer; position: relative;
+  }
+  .kp-item:hover { border-color: rgba(255,184,108,0.4); }
+  .kp-item.expanded { border-color: var(--orange); }
+
+  .kp-status-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    margin-top: 7px;
+  }
+  .kp-status-dot.red { background: var(--red); box-shadow: 0 0 8px rgba(255,85,85,0.4); }
+  .kp-status-dot.orange { background: var(--orange); box-shadow: 0 0 8px rgba(255,184,108,0.4); }
+  .kp-status-dot.green { background: var(--green); box-shadow: 0 0 8px rgba(80,250,123,0.4); }
+
+  .kp-content { flex: 1; }
+  .kp-title { font-weight: 700; font-size: 0.92em; }
+  .kp-source {
+    font-size: 0.75em; color: var(--text2); margin-top: 2px;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .kp-source span {
+    background: var(--surface3); padding: 1px 8px; border-radius: 4px;
+  }
+
+  .kp-detail {
+    display: none; margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--border); font-size: 0.85em;
+    color: var(--text2); line-height: 1.7;
+  }
+  .kp-item.expanded .kp-detail { display: block; }
+  .kp-detail strong { color: var(--text); }
+  .kp-detail code {
+    background: var(--surface3); padding: 1px 6px; border-radius: 3px;
+    font-size: 0.9em; color: var(--orange);
+  }
+
+  .kp-arrow {
+    color: var(--text2); font-size: 0.8em; margin-top: 5px;
+    transition: transform 0.2s; flex-shrink: 0;
+  }
+  .kp-item.expanded .kp-arrow { transform: rotate(90deg); }
+
+  /* ═══ 学习路径 ═══ */
+  .path-timeline {
+    position: relative; padding-left: 30px; margin: 20px 0;
+  }
+  .path-timeline::before {
+    content: ''; position: absolute; left: 12px; top: 0; bottom: 0;
+    width: 2px; background: linear-gradient(to bottom, var(--red), var(--orange), var(--green));
+  }
+  .path-step {
+    position: relative; margin: 16px 0; padding: 14px 18px;
+    background: var(--surface2); border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .path-step::before {
+    content: ''; position: absolute; left: -23px; top: 18px;
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid; background: var(--surface);
+  }
+  .path-step.step-urgent::before { border-color: var(--red); }
+  .path-step.step-important::before { border-color: var(--orange); }
+  .path-step.step-nice::before { border-color: var(--green); }
+  .path-step h4 { font-size: 0.92em; margin-bottom: 4px; }
+  .path-step p { font-size: 0.82em; color: var(--text2); margin: 0; }
+
+  /* ═══ 对比表 ═══ */
+  .info-table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.85em;
+  }
+  .info-table th {
+    background: var(--surface3); color: var(--orange); text-align: left;
+    padding: 10px 14px; border: 1px solid var(--border); font-weight: 700;
+  }
+  .info-table td {
+    padding: 10px 14px; border: 1px solid var(--border); color: var(--text2);
+  }
+
+  /* ═══ 提示框 ═══ */
+  .tip-box {
+    border-radius: 10px; padding: 14px 18px; margin: 14px 0;
+    font-size: 0.85em; line-height: 1.7;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .tip-box.insight {
+    background: rgba(100,255,218,0.06); border: 1px solid rgba(100,255,218,0.2); color: var(--blue);
+  }
+  .tip-box.action {
+    background: rgba(255,184,108,0.06); border: 1px solid rgba(255,184,108,0.2); color: var(--orange);
+  }
+  .tip-icon { font-size: 1.1em; flex-shrink: 0; }
+
+  /* ═══ 统计条 ═══ */
+  .stat-bar {
+    display: flex; gap: 20px; flex-wrap: wrap;
+    padding: 20px; background: var(--surface);
+    border-radius: 12px; border: 1px solid var(--border);
+    margin: 20px 0; justify-content: center;
+  }
+  .stat-item { text-align: center; min-width: 100px; }
+  .stat-num { font-size: 2em; font-weight: 900; }
+  .stat-label { font-size: 0.78em; color: var(--text2); }
+
+  /* ═══ 底部 ═══ */
+  footer {
+    text-align: center; padding: 50px 24px 30px; color: var(--text2);
+    font-size: 0.82em; position: relative; z-index: 1;
+  }
+
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 2em; }
+    .zone-card { padding: 18px; }
+    .map-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+    .stat-bar { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<canvas id="particles"></canvas>
+
+<nav class="side-nav">
+  <a href="#top"><span class="tip">总览</span></a>
+  <a href="#z1"><span class="tip">基础概念</span></a>
+  <a href="#z2"><span class="tip">HTTP 协议</span></a>
+  <a href="#z3"><span class="tip">认证机制</span></a>
+  <a href="#z4"><span class="tip">后端架构</span></a>
+  <a href="#z5"><span class="tip">接口文档</span></a>
+  <a href="#z6"><span class="tip">测试方法</span></a>
+  <a href="#z7"><span class="tip">开发流程</span></a>
+  <a href="#z8"><span class="tip">学习路径</span></a>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero" id="top">
+  <h1>我的知识盲区整理</h1>
+  <p class="subtitle">从 4 份 Halo 学习文档中提取出所有知识点<br>标注掌握程度，规划学习优先级</p>
+  <span class="badge">4 份文档 · 7 大板块 · 43 个知识点</span>
+</section>
+
+<!-- ═══════════════ 统计总览 ═══════════════ -->
+<div class="container reveal">
+  <div class="stat-bar">
+    <div class="stat-item">
+      <div class="stat-num" style="color:var(--red)">14</div>
+      <div class="stat-label">不熟悉（需重点攻克）</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" style="color:var(--orange)">17</div>
+      <div class="stat-label">半懂（需动手实践）</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" style="color:var(--green)">12</div>
+      <div class="stat-label">已掌握（可跳过）</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 知识地图 ═══════════════ -->
+<div class="container reveal" style="margin-top:10px;">
+  <h3 style="text-align:center; color:var(--text2); margin-bottom:16px; font-size:0.95em;">知识地图 · 点击跳转到对应板块</h3>
+  <div class="map-grid">
+    <a href="#z1" class="map-cell mastered" style="text-decoration:none;color:var(--text)">
+      <span class="status">已懂</span>
+      什么是接口<br><small style="color:var(--text2)">餐厅比喻 · 前后端通信</small>
+    </a>
+    <a href="#z2" class="map-cell partial" style="text-decoration:none;color:var(--text)">
+      <span class="status">半懂</span>
+      HTTP 协议<br><small style="color:var(--text2)">方法 · 状态码 · 头部</small>
+    </a>
+    <a href="#z3" class="map-cell weak" style="text-decoration:none;color:var(--text)">
+      <span class="status">不熟</span>
+      认证机制<br><small style="color:var(--text2)">JWT · Session · CSRF</small>
+    </a>
+    <a href="#z4" class="map-cell weak" style="text-decoration:none;color:var(--text)">
+      <span class="status">不熟</span>
+      后端架构<br><small style="color:var(--text2)">路由 · 中间件 · 控制器</small>
+    </a>
+    <a href="#z5" class="map-cell partial" style="text-decoration:none;color:var(--text)">
+      <span class="status">半懂</span>
+      接口文档<br><small style="color:var(--text2)">OpenAPI · 字段解读</small>
+    </a>
+    <a href="#z6" class="map-cell partial" style="text-decoration:none;color:var(--text)">
+      <span class="status">半懂</span>
+      测试方法<br><small style="color:var(--text2)">用例设计 · 边界 · 断言</small>
+    </a>
+    <a href="#z7" class="map-cell partial" style="text-decoration:none;color:var(--text)">
+      <span class="status">半懂</span>
+      开发流程<br><small style="color:var(--text2)">生命周期 · CI/CD</small>
+    </a>
+  </div>
+</div>
+
+<!-- ═══════════════ 板块1：基础概念 ═══════════════ -->
+<section class="zone reveal" id="z1">
+  <div class="zone-header">
+    <div class="zone-icon" style="background:rgba(80,250,123,0.15);color:var(--green)">1</div>
+    <h2 style="color:var(--green)">基础概念 — 接口是什么</h2>
+  </div>
+  <div class="zone-card">
+    <ul class="kp-list">
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot green"></span>
+        <div class="kp-content">
+          <div class="kp-title">接口 = 前后端通信的约定（餐厅比喻）</div>
+          <div class="kp-source"><span>接口指南 Ch1</span><span>动画总结 S1</span></div>
+          <div class="kp-detail">
+            前端(顾客) → 接口(服务员) → 后端(厨房)。<br>
+            <strong>已掌握：</strong>能理解比喻，知道接口是前后端的桥梁。
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot green"></span>
+        <div class="kp-content">
+          <div class="kp-title">接口的本质 = HTTP 请求 + JSON 响应</div>
+          <div class="kp-source"><span>接口指南 Ch1.3</span></div>
+          <div class="kp-detail">
+            <strong>已掌握：</strong>知道接口就是发 HTTP 请求、收 JSON 数据。
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot green"></span>
+        <div class="kp-content">
+          <div class="kp-title">RESTful 风格：用 URL 表示资源，用方法表示操作</div>
+          <div class="kp-source"><span>接口指南 Ch1.2</span><span>生命周期 Phase2</span></div>
+          <div class="kp-detail">
+            <strong>已掌握：</strong>GET=查, POST=创建, PUT=更新, DELETE=删除。资源用名词复数 <code>/api/posts</code>。
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">接口测试在系统分层中的位置（测试金字塔）</div>
+          <div class="kp-source"><span>接口指南 Ch2.4</span><span>动画总结 S2</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道金字塔三层（单元→接口→E2E），知道接口测试性价比最高。<br>
+            <strong>不确定的：</strong>单元测试和接口测试的边界在哪？哪些场景该用单元测试，哪些该用接口测试？
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════ 板块2：HTTP 协议 ═══════════════ -->
+<section class="zone reveal" id="z2">
+  <div class="zone-header">
+    <div class="zone-icon" style="background:rgba(255,184,108,0.15);color:var(--orange)">2</div>
+    <h2 style="color:var(--orange)">HTTP 协议 — 接口通信的语言</h2>
+  </div>
+  <div class="zone-card">
+    <ul class="kp-list">
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot green"></span>
+        <div class="kp-content">
+          <div class="kp-title">四种 HTTP 方法：GET / POST / PUT / DELETE</div>
+          <div class="kp-source"><span>接口指南 Ch1</span><span>知识树 §2</span></div>
+          <div class="kp-detail"><strong>已掌握：</strong>知道每种方法的含义和对应的 CRUD 操作。</div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">状态码的含义和排查方向</div>
+          <div class="kp-source"><span>知识树 §6</span><span>接口指南 Ch7.6</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>200/400/401/404/500 大概知道含义。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li>401 和 403 到底有什么区别？什么时候返回哪个？</li>
+              <li>400 和 422 的区别？</li>
+              <li>201 和 200 什么时候用哪个？</li>
+              <li>状态码是谁决定的——中间件还是控制器？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">请求头（Headers）的作用</div>
+          <div class="kp-source"><span>接口指南 Ch1.3</span><span>知识树 §3</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道 <code>Content-Type</code> 和 <code>Authorization</code> 这两个头。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li><code>Content-Type: application/json</code> 和 <code>multipart/form-data</code> 什么时候用哪个？</li>
+              <li>不设 Content-Type 会怎样？后端怎么处理？</li>
+              <li>CORS 相关的头（<code>Origin</code>, <code>Access-Control-*</code>）是什么意思？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">请求体的三种格式：JSON / FormData / URL-encoded</div>
+          <div class="kp-source"><span>知识树 §3</span><span>接口指南 Ch3</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <ul>
+              <li>JSON 和 FormData 在传输上有什么本质区别？</li>
+              <li>为什么上传文件必须用 FormData 而不能用 JSON？</li>
+              <li>Postman 里 Body 的 raw/form-data/x-www-form-urlencoded 分别对应什么？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">Query 参数 vs Body 参数 vs Path 参数</div>
+          <div class="kp-source"><span>知识树 §2</span><span>接口指南 Ch3.3</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道 <code>/songs?page=1</code> 是 query，<code>/songs/123</code> 是 path。<br>
+            <strong>不确定的：</strong>什么时候该用 query，什么时候该放 body？有没有规则？
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════ 板块3：认证机制 ═══════════════ -->
+<section class="zone reveal" id="z3">
+  <div class="zone-header">
+    <div class="zone-icon" style="background:rgba(255,85,85,0.15);color:var(--red)">3</div>
+    <h2 style="color:var(--red)">认证机制 — 最大的盲区</h2>
+  </div>
+  <div class="zone-card">
+    <div class="tip-box action">
+      <span class="tip-icon">!</span>
+      <div>这是你讨论过的所有知识中<strong>涉及最多但理解最浅</strong>的板块。4 份文档都涉及认证，但每份讲的认证方式不同（JWT / Session+CSRF / Basic Auth），容易混淆。</div>
+    </div>
+
+    <ul class="kp-list">
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">JWT（JSON Web Token）认证流程</div>
+          <div class="kp-source"><span>知识树 §3</span><span>EchoVerse 源码</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道登录后返回 token，后续请求带 <code>Authorization: Bearer xxx</code>。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li>JWT token 里面到底存了什么？能不能解码看看？</li>
+              <li>token 过期后怎么办？要重新登录吗？有没有 refresh token？</li>
+              <li><code>jwt.sign()</code> 和 <code>jwt.verify()</code> 到底在做什么？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">Session + Cookie 认证（Halo 的表单认证）</div>
+          <div class="kp-source"><span>接口指南 Ch6.2</span><span>生命周期 Phase3</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <ul>
+              <li>Session 存在哪里？服务端还是客户端？</li>
+              <li>Cookie 和 Session 是什么关系？</li>
+              <li>Session 认证和 JWT 认证的根本区别是什么？</li>
+              <li>浏览器自动带 Cookie 是什么意思？Postman 也会自动带吗？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">CSRF 令牌是什么？为什么需要它？</div>
+          <div class="kp-source"><span>接口指南 Ch6.2</span><span>生命周期 Phase3</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <ul>
+              <li>CSRF 攻击是什么？它和 XSS 有什么区别？</li>
+              <li>为什么 Session 认证需要 CSRF 令牌，而 JWT 不需要？</li>
+              <li>Halo 的 CSRF 令牌从哪里获取？怎么在 Postman 里带上它？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">Basic Auth（基本认证）</div>
+          <div class="kp-source"><span>接口指南 Ch6.1</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <ul>
+              <li><code>Authorization: Basic base64(user:pass)</code> 具体怎么编码？</li>
+              <li>为什么说 Basic Auth 不安全？HTTPS 下还不安全吗？</li>
+              <li>为什么适合 Postman 调试但不适合生产环境？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">三种认证方式的对比和选型</div>
+          <div class="kp-source"><span>接口指南 Ch6.4</span><span>生命周期 Phase3</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <table class="info-table" style="margin-top:8px;">
+              <tr><th>方式</th><th>存储位置</th><th>适用场景</th><th>安全性</th></tr>
+              <tr><td>Basic Auth</td><td>每次请求带</td><td>调试/测试</td><td>低（明文base64）</td></tr>
+              <tr><td>Session+Cookie</td><td>服务端存储</td><td>浏览器Web应用</td><td>中（需CSRF防护）</td></tr>
+              <tr><td>JWT Bearer</td><td>客户端存储</td><td>API/移动端/SPA</td><td>中高（无状态）</td></tr>
+            </table>
+            <strong>核心困惑：</strong>为什么 Halo 同时支持 3 种？EchoVerse 只用了 JWT？项目实际中怎么选？
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════ 板块4：后端架构 ═══════════════ -->
+<section class="zone reveal" id="z4">
+  <div class="zone-header">
+    <div class="zone-icon" style="background:rgba(255,85,85,0.15);color:var(--red)">4</div>
+    <h2 style="color:var(--pink)">后端架构 — 请求在服务器里怎么走</h2>
+  </div>
+  <div class="zone-card">
+    <ul class="kp-list">
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">请求的完整链路：app.js → routes → middleware → controller</div>
+          <div class="kp-source"><span>知识树 §2-4</span><span>生命周期 Phase3</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>看过知识树的流程图，知道大致顺序。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li>如果有多个中间件（auth + upload），执行顺序是怎么决定的？</li>
+              <li>一个中间件失败后，后面的中间件和控制器还会执行吗？</li>
+              <li><code>next()</code> 到底做了什么？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">中间件（Middleware）的概念和作用</div>
+          <div class="kp-source"><span>知识树 §3</span><span>生命周期 Phase3</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <ul>
+              <li>中间件和控制器的本质区别是什么？都是函数，为什么分开？</li>
+              <li>全局中间件 vs 路由级中间件——怎么区分？</li>
+              <li>Express 的 <code>express.json()</code> 也是中间件？它和自定义中间件有什么关系？</li>
+              <li>Halo 的 Spring WebFlux 过滤器和 Express 中间件是一回事吗？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">Halo 后端三层架构：Endpoint → Service → Repository</div>
+          <div class="kp-source"><span>接口指南 Ch4</span><span>生命周期 Phase3</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <ul>
+              <li>Halo 用 Java Spring WebFlux（响应式），EchoVerse 用 Node Express（命令式）——有什么根本区别？</li>
+              <li>Halo 的 <code>@Schema</code> 注解做了什么？为什么能自动生成文档？</li>
+              <li>路由定义(Endpoint)和请求处理(Handler)是怎么绑定的？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">数据库 ORM：Prisma(EchoVerse) vs Spring Data(Halo)</div>
+          <div class="kp-source"><span>知识树 §1</span><span>接口指南 Ch4.3</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道 Prisma schema 定义表结构，知道 CRUD 操作。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li>事务(Transaction)是什么？为什么创建专辑要用事务？</li>
+              <li>级联删除在数据库层面是怎么工作的？</li>
+              <li>Prisma 的 <code>include</code> 和 <code>select</code> 有什么区别？什么时候用哪个？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">文件上传的处理流程（Multer）</div>
+          <div class="kp-source"><span>知识树 §3</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道 Multer 处理 multipart/form-data，文件存到 uploads/ 目录。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li>磁盘存储 vs 内存存储 有什么区别？</li>
+              <li>文件名为什么要加时间戳？不加会怎样？</li>
+              <li>大文件上传（200MB 限制）在网络层面是怎么传输的？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════ 板块5：接口文档 ═══════════════ -->
+<section class="zone reveal" id="z5">
+  <div class="zone-header">
+    <div class="zone-icon" style="background:rgba(255,184,108,0.15);color:var(--orange)">5</div>
+    <h2 style="color:var(--yellow)">接口文档 — 测试的依据</h2>
+  </div>
+  <div class="zone-card">
+    <ul class="kp-list">
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot green"></span>
+        <div class="kp-content">
+          <div class="kp-title">接口文档包含的 6 类关键信息</div>
+          <div class="kp-source"><span>接口指南 Ch3.3</span><span>动画总结 S3</span></div>
+          <div class="kp-detail">
+            <strong>已掌握：</strong>路径+方法、请求头、参数(必填/选填)、响应结果、状态码、参数关联关系。
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">OpenAPI / Swagger 规范</div>
+          <div class="kp-source"><span>接口指南 Ch3.4</span><span>生命周期 Phase2</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道 OpenAPI 是一种接口文档标准，Swagger UI 可以可视化。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li>OpenAPI JSON 长什么样？里面的 paths / schemas 是什么意思？</li>
+              <li>Halo 的 <code>@Schema</code> 注解是怎么转成 OpenAPI JSON 的？</li>
+              <li>EchoVerse 没有 OpenAPI 文档，能自动生成吗？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">前端 SDK 自动生成（Halo 的 TypeScript SDK）</div>
+          <div class="kp-source"><span>接口指南 Ch5.1</span><span>生命周期 Phase4</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道 Halo 用 OpenAPI 自动生成 TypeScript SDK，前端直接调用函数。<br>
+            <strong>不确定的：</strong>用什么工具生成的？EchoVerse 能用吗？手写 API 调用和自动生成有什么优劣？
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot green"></span>
+        <div class="kp-content">
+          <div class="kp-title">从源码推导接口信息（无文档时的方法）</div>
+          <div class="kp-source"><span>知识树 §2-4</span></div>
+          <div class="kp-detail">
+            <strong>已掌握：</strong>读 routes/*.js → 得到 URL + 方法；读 controllers/*.js → 得到参数和分支逻辑。这是知识树的核心方法论。
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════ 板块6：测试方法 ═══════════════ -->
+<section class="zone reveal" id="z6">
+  <div class="zone-header">
+    <div class="zone-icon" style="background:rgba(100,255,218,0.15);color:var(--blue)">6</div>
+    <h2 style="color:var(--blue)">测试方法 — 怎么设计和执行测试</h2>
+  </div>
+  <div class="zone-card">
+    <ul class="kp-list">
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot green"></span>
+        <div class="kp-content">
+          <div class="kp-title">测试用例三分法：正向 / 反向 / 边界</div>
+          <div class="kp-source"><span>动画总结 S6</span><span>生命周期 Phase5</span></div>
+          <div class="kp-detail">
+            <strong>已掌握：</strong>正向(正常输入)、反向(缺字段/错类型/无权限)、边界(空字符串/超长/特殊字符)。
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot green"></span>
+        <div class="kp-content">
+          <div class="kp-title">从源码 if 分支推导测试用例</div>
+          <div class="kp-source"><span>知识树 §4-5</span></div>
+          <div class="kp-detail">
+            <strong>已掌握：</strong>每个 if 分支 = 一个测试用例。正常路径 + 所有错误分支 = 完整覆盖。
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">测试数据依赖链（构造顺序）</div>
+          <div class="kp-source"><span>知识树 §5</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道要 注册→建专辑→再测歌曲接口。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li>前一个接口返回的数据（如 token、id），怎么传递给下一个接口？Postman 的环境变量怎么用？</li>
+              <li>测试完成后的数据清理怎么做？要手动删吗？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">断言（验证响应的哪些部分）</div>
+          <div class="kp-source"><span>知识树 §5</span><span>接口指南 Ch7</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道要验证 status code 和 response body。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li>Postman 的 Tests 脚本怎么写？<code>pm.test()</code> 语法是什么？</li>
+              <li>怎么验证返回的 JSON 结构（字段存在性、类型、嵌套对象）？</li>
+              <li>数据库状态验证——怎么确认数据真的写进去了？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">Postman 实战操作（Collection / Environment / Tests）</div>
+          <div class="kp-source"><span>接口指南 Ch7</span><span>生命周期 Phase5</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <ul>
+              <li>Collection 和 Folder 怎么组织用例？</li>
+              <li>Environment 变量怎么设置和引用？</li>
+              <li>Pre-request Script 是什么？怎么用它自动获取 token？</li>
+              <li>Collection Runner 批量执行和 Newman 命令行有什么区别？</li>
+              <li>怎么把 Postman 测试接入 CI/CD？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">MeterSphere 测试平台</div>
+          <div class="kp-source"><span>接口指南 Ch6.3</span><span>生命周期 Phase5</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <ul>
+              <li>MeterSphere 和 Postman 有什么区别？各自适合什么场景？</li>
+              <li>MeterSphere 的"全局认证"是什么意思？</li>
+              <li>在团队协作中，为什么可能选 MeterSphere 而不是 Postman？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════ 板块7：开发流程 ═══════════════ -->
+<section class="zone reveal" id="z7">
+  <div class="zone-header">
+    <div class="zone-icon" style="background:rgba(189,147,249,0.15);color:var(--purple)">7</div>
+    <h2 style="color:var(--purple)">开发流程 — 测试在全局中的位置</h2>
+  </div>
+  <div class="zone-card">
+    <ul class="kp-list">
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot green"></span>
+        <div class="kp-content">
+          <div class="kp-title">软件开发 8 个阶段的流程和角色分工</div>
+          <div class="kp-source"><span>生命周期 全文</span></div>
+          <div class="kp-detail">
+            <strong>已掌握：</strong>需求→设计→后端开发→前端开发→测试→联调→部署→运维。知道各阶段角色。
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot green"></span>
+        <div class="kp-content">
+          <div class="kp-title">测试左移：从需求阶段就开始设计用例</div>
+          <div class="kp-source"><span>生命周期 Phase1</span></div>
+          <div class="kp-detail">
+            <strong>已掌握：</strong>不用等后端写完才开始测试，需求评审时就能提出测试视角的问题。
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">前后端并行开发（接口契约驱动）</div>
+          <div class="kp-source"><span>生命周期 Phase4</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道接口设计确定后前后端可以并行。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li>前端用 Mock 数据开发是什么意思？怎么 mock？</li>
+              <li>如果后端改了接口约定，前端怎么知道？怎么防止不一致？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot orange"></span>
+        <div class="kp-content">
+          <div class="kp-title">联调阶段常见的问题类型</div>
+          <div class="kp-source"><span>生命周期 Phase6</span></div>
+          <div class="kp-detail">
+            <strong>半懂：</strong>知道联调会遇到字段名不一致、数据格式差异、认证方式差异等。<br>
+            <strong>不确定的：</strong>
+            <ul>
+              <li>联调中发现的问题，算是接口测试的 bug 还是联调的 bug？</li>
+              <li>接口测试能提前发现多少联调问题？还有哪些是接口测试发现不了的？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">CI/CD 流水线中的自动化接口测试</div>
+          <div class="kp-source"><span>生命周期 Phase7</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <ul>
+              <li>CI/CD 是什么？Jenkins / GitHub Actions / GitLab CI 有什么区别？</li>
+              <li>流水线中的接口测试怎么触发？是每次提交代码就自动跑吗？</li>
+              <li>"回归测试"和"冒烟测试"有什么区别？</li>
+              <li>接口测试脚本从 Postman 导出后怎么在 CI 中运行？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+      <li class="kp-item" onclick="this.classList.toggle('expanded')">
+        <span class="kp-status-dot red"></span>
+        <div class="kp-content">
+          <div class="kp-title">线上接口健康监控</div>
+          <div class="kp-source"><span>生命周期 Phase8</span></div>
+          <div class="kp-detail">
+            <strong>不熟悉：</strong>
+            <ul>
+              <li>健康检查接口 <code>/health</code> 具体检查什么？</li>
+              <li>为什么线上只能做 GET 读取测试，不能做 POST 写入测试？</li>
+              <li>监控工具（Grafana、Prometheus）和接口测试有什么关系？</li>
+            </ul>
+          </div>
+        </div>
+        <span class="kp-arrow">▸</span>
+      </li>
+
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════ 学习路径建议 ═══════════════ -->
+<section class="zone reveal" id="z8">
+  <div class="zone-header">
+    <div class="zone-icon" style="background:rgba(100,255,218,0.15);color:var(--blue)">→</div>
+    <h2 style="color:var(--blue)">建议学习路径</h2>
+  </div>
+  <div class="zone-card">
+    <div class="tip-box insight">
+      <span class="tip-icon">&#9670;</span>
+      <div>按照"<strong>不熟悉 → 半懂 → 已掌握</strong>"的顺序，先攻克红点知识再补橙点，绿点可以跳过。每个阶段建议<strong>动手实践</strong>而不是只看文档。</div>
+    </div>
+
+    <div class="path-timeline">
+      <div class="path-step step-urgent">
+        <h4 style="color:var(--red)">第一周：认证机制（最大盲区）</h4>
+        <p>用 EchoVerse 源码动手做：<br>
+        ① 用 curl/Postman 走一遍 注册→登录→带token访问→token过期 的完整流程<br>
+        ② 解码一个 JWT token（jwt.io 在线工具），看看里面存了什么<br>
+        ③ 理解 Session 和 JWT 的根本区别——"服务端存状态" vs "客户端存状态"</p>
+      </div>
+
+      <div class="path-step step-urgent">
+        <h4 style="color:var(--red)">第二周：后端架构（中间件+控制器）</h4>
+        <p>用 EchoVerse 源码实操：<br>
+        ① 在 auth.js 中加 console.log，观察中间件执行顺序<br>
+        ② 故意不带 token 调接口，跟踪请求在哪里被拦截<br>
+        ③ 在控制器中加断点或 log，观察 req.body / req.params / req.userId 的值</p>
+      </div>
+
+      <div class="path-step step-important">
+        <h4 style="color:var(--orange)">第三周：Postman 实战</h4>
+        <p>① 创建一个 Collection，按"注册→登录→建专辑→收藏→评论"组织<br>
+        ② 学会用 Environment 变量存 token 和 songId<br>
+        ③ 写 Tests 脚本验证状态码和返回结构<br>
+        ④ 用 Collection Runner 批量执行</p>
+      </div>
+
+      <div class="path-step step-important">
+        <h4 style="color:var(--orange)">第四周：HTTP 协议深入 + 请求体格式</h4>
+        <p>① 用 Postman 分别发送 JSON body 和 FormData body，观察 Content-Type 变化<br>
+        ② 测试 EchoVerse 的专辑上传接口（FormData + 文件）<br>
+        ③ 故意发错 Content-Type，观察后端报错</p>
+      </div>
+
+      <div class="path-step step-nice">
+        <h4 style="color:var(--green)">后续：CI/CD + 自动化 + 监控（了解即可）</h4>
+        <p>① 了解 GitHub Actions 的基本概念<br>
+        ② 知道 Newman 可以在命令行跑 Postman 集合<br>
+        ③ 理解回归测试 vs 冒烟测试的区别</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Halo 知识盲区整理 · 从 4 份文档中提取 43 个知识点</p>
+  <p style="margin-top:6px;font-size:0.78em;">文档来源：接口指南 · 动画总结 · 开发生命周期 · 接口测试知识树</p>
+</footer>
+
+<!-- ═══════════════ JavaScript ═══════════════ -->
+<script>
+// 滚动进度条
+const progress = document.getElementById('progress');
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  progress.style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100 + '%';
+});
+
+// 滚动动画
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// 侧边导航高亮
+const sections = document.querySelectorAll('[id^="z"], #top');
+const navLinks = document.querySelectorAll('.side-nav a');
+window.addEventListener('scroll', () => {
+  let current = 'top';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 200) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+
+// 粒子背景
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize();
+window.addEventListener('resize', resize);
+for (let i = 0; i < 50; i++) {
+  particles.push({
+    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+    r: Math.random() * 1.5 + 0.5, dx: (Math.random() - 0.5) * 0.3,
+    dy: (Math.random() - 0.5) * 0.3, o: Math.random() * 0.25 + 0.05
+  });
+}
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => {
+    p.x += p.dx; p.y += p.dy;
+    if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+    if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,184,108,${p.o})`; ctx.fill();
+  });
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 120) {
+        ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(255,184,108,${0.05 * (1 - d / 120)})`; ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+
+// 统计动画
+function animateCount(el, target) {
+  let current = 0;
+  const step = Math.max(1, Math.floor(target / 30));
+  const timer = setInterval(() => {
+    current += step;
+    if (current >= target) { current = target; clearInterval(timer); }
+    el.textContent = current;
+  }, 40);
+}
+const countObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const num = parseInt(e.target.textContent);
+      animateCount(e.target, num);
+      countObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('.stat-num').forEach(el => countObserver.observe(el));
+</script>
+</body>
+</html>

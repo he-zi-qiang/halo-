@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "EchoVerse Backend",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--prefix", "echoverse-backend", "nodemon", "echoverse-backend/app.js"],
+      "port": 3000
+    },
+    {
+      "name": "EchoVerse Frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start", "--prefix", "echoverse-frontend"],
+      "port": 3001
+    },
+    {
+      "name": "Docs Server",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8899", "--directory", "docs"],
+      "port": 8899
+    }
+  ]
+}

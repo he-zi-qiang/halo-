@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halo 软件开发全生命周期 · 从需求到上线</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e1a; --surface: #131a2e; --surface2: #1c2540; --surface3: #243050;
+    --border: #2a3555; --text: #e2e8f0; --text2: #8892b0;
+    --blue: #64ffda; --purple: #bd93f9; --pink: #ff79c6;
+    --orange: #ffb86c; --green: #50fa7b; --red: #ff5555;
+    --yellow: #f1fa8c; --cyan: #8be9fd;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.8;
+    overflow-x: hidden;
+  }
+  code, pre { font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace; }
+
+  /* ═══ 粒子背景 ═══ */
+  #particles {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+  }
+
+  /* ═══ 滚动进度条 ═══ */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 3px; z-index: 1000;
+    background: linear-gradient(90deg, var(--blue), var(--purple), var(--pink));
+    transition: width 0.15s;
+  }
+
+  /* ═══ 滚动动画 ═══ */
+  .reveal {
+    opacity: 0; transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-left {
+    opacity: 0; transform: translateX(-60px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal-left.visible { opacity: 1; transform: translateX(0); }
+  .reveal-right {
+    opacity: 0; transform: translateX(60px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal-right.visible { opacity: 1; transform: translateX(0); }
+
+  /* ═══ 布局 ═══ */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* ═══ Hero ═══ */
+  .hero {
+    text-align: center; padding: 100px 24px 60px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(100,255,218,0.06) 0%, transparent 70%);
+    position: relative; z-index: 1;
+  }
+  .hero h1 {
+    font-size: 3em; font-weight: 900; margin-bottom: 16px;
+    background: linear-gradient(135deg, var(--blue), var(--purple), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero .subtitle { color: var(--text2); font-size: 1.2em; max-width: 700px; margin: 0 auto 24px; }
+  .hero .badge {
+    display: inline-block; background: var(--surface2); color: var(--blue);
+    padding: 6px 18px; border-radius: 20px; font-size: 0.85em;
+    border: 1px solid rgba(100,255,218,0.2);
+  }
+
+  /* ═══ 侧边导航 ═══ */
+  .side-nav {
+    position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+    z-index: 100; display: flex; flex-direction: column; gap: 8px;
+  }
+  @media (max-width: 900px) { .side-nav { display: none; } }
+  .side-nav a {
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--text2);
+    transition: all 0.3s; position: relative; display: block;
+  }
+  .side-nav a:hover, .side-nav a.active {
+    border-color: var(--blue); background: var(--blue);
+    box-shadow: 0 0 10px var(--blue);
+  }
+  .side-nav a .tip {
+    position: absolute; right: 22px; top: 50%; transform: translateY(-50%);
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 4px 12px; border-radius: 6px; font-size: 0.75em;
+    white-space: nowrap; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s; color: var(--text);
+  }
+  .side-nav a:hover .tip { opacity: 1; }
+
+  /* ═══ 全宽章节 ═══ */
+  .full-section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 40px; margin: 60px auto;
+    max-width: 1100px; position: relative; z-index: 1;
+  }
+  .full-section h2 {
+    font-size: 1.8em; font-weight: 800; margin-bottom: 20px; text-align: center;
+  }
+
+  /* ═══ 阶段章节 ═══ */
+  .stage {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 80px auto;
+    padding: 0 24px;
+  }
+  .stage-header {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+  }
+  .stage-num {
+    width: 56px; height: 56px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 1.4em; font-weight: 900; flex-shrink: 0;
+    box-shadow: 0 0 20px currentColor;
+  }
+  .stage-header h2 { font-size: 1.8em; font-weight: 800; }
+  .stage-header .time-badge {
+    background: var(--surface2); padding: 4px 14px; border-radius: 10px;
+    font-size: 0.8em; color: var(--text2); margin-left: auto;
+  }
+
+  .stage-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .stage-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  }
+
+  /* ═══ 角色标签 ═══ */
+  .role {
+    display: inline-block; padding: 2px 10px; border-radius: 6px;
+    font-size: 0.75em; font-weight: 700; margin: 2px 4px 2px 0;
+  }
+  .role-pm { background: rgba(255,121,198,0.15); color: var(--pink); }
+  .role-backend { background: rgba(100,255,218,0.15); color: var(--blue); }
+  .role-frontend { background: rgba(189,147,249,0.15); color: var(--purple); }
+  .role-test { background: rgba(255,184,108,0.15); color: var(--orange); }
+  .role-ops { background: rgba(80,250,123,0.15); color: var(--green); }
+
+  /* ═══ 代码块 ═══ */
+  .code-block {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; margin: 16px 0; overflow-x: auto; font-size: 0.82em;
+    line-height: 1.7; position: relative;
+  }
+  .code-block .lang-tag {
+    position: absolute; top: 8px; right: 12px;
+    font-size: 0.7em; color: var(--text2); text-transform: uppercase; letter-spacing: 1px;
+  }
+  .code-block .kw { color: var(--pink); }
+  .code-block .fn { color: var(--blue); }
+  .code-block .str { color: var(--yellow); }
+  .code-block .ann { color: var(--green); }
+  .code-block .cmt { color: #6272a4; font-style: italic; }
+  .code-block .type { color: var(--cyan); }
+  .code-block .num { color: var(--purple); }
+
+  /* ═══ 三栏 ═══ */
+  .tri-col {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0;
+  }
+  @media (max-width: 768px) { .tri-col { grid-template-columns: 1fr; } }
+  .tri-col .col {
+    background: var(--surface2); border-radius: 10px; padding: 20px;
+    border-top: 3px solid;
+  }
+  .tri-col .col h4 { margin-bottom: 8px; font-size: 0.95em; }
+
+  /* ═══ 流程图 ═══ */
+  .flow-box {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: 8px; margin: 16px 0;
+  }
+  .flow-step {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 8px 16px; border-radius: 8px; font-size: 0.85em;
+    white-space: nowrap;
+  }
+  .flow-arrow { color: var(--text2); font-size: 1.2em; }
+
+  /* ═══ 表格 ═══ */
+  .info-table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.88em;
+  }
+  .info-table th {
+    background: var(--surface2); color: var(--blue); text-align: left;
+    padding: 10px 14px; border: 1px solid var(--border);
+  }
+  .info-table td {
+    padding: 10px 14px; border: 1px solid var(--border); color: var(--text2);
+  }
+  .info-table tr:hover td { background: rgba(100,255,218,0.03); }
+
+  /* ═══ 高亮框 ═══ */
+  .callout {
+    border-left: 4px solid; border-radius: 8px; padding: 16px 20px;
+    margin: 16px 0; font-size: 0.9em;
+  }
+  .callout-blue { border-color: var(--blue); background: rgba(100,255,218,0.05); }
+  .callout-orange { border-color: var(--orange); background: rgba(255,184,108,0.05); }
+  .callout-pink { border-color: var(--pink); background: rgba(255,121,198,0.05); }
+  .callout-green { border-color: var(--green); background: rgba(80,250,123,0.05); }
+  .callout-purple { border-color: var(--purple); background: rgba(189,147,249,0.05); }
+
+  /* ═══ 子章节 ═══ */
+  .sub-section {
+    background: var(--surface2); border-radius: 12px; padding: 24px;
+    margin: 20px 0; border: 1px solid var(--border);
+  }
+  .sub-section h3 {
+    font-size: 1.15em; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+
+  /* ═══ 接口卡片 ═══ */
+  .api-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 20px; margin: 8px 0;
+    display: flex; align-items: center; gap: 12px;
+    transition: transform 0.2s;
+  }
+  .api-card:hover { transform: translateX(4px); }
+  .method {
+    display: inline-block; padding: 3px 10px; border-radius: 4px;
+    font-size: 0.75em; font-weight: 800; min-width: 55px; text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .method-get { background: rgba(80,250,123,0.2); color: var(--green); }
+  .method-post { background: rgba(255,184,108,0.2); color: var(--orange); }
+  .method-put { background: rgba(139,233,253,0.2); color: var(--cyan); }
+  .method-delete { background: rgba(255,85,85,0.2); color: var(--red); }
+  .api-path { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; color: var(--text); }
+  .api-desc { font-size: 0.82em; color: var(--text2); margin-left: auto; }
+
+  /* ═══ 认证卡片 ═══ */
+  .auth-cards {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0;
+  }
+  @media (max-width: 768px) { .auth-cards { grid-template-columns: 1fr; } }
+  .auth-card {
+    background: var(--surface2); border-radius: 12px; padding: 20px;
+    border: 1px solid var(--border); transition: transform 0.3s;
+  }
+  .auth-card:hover { transform: translateY(-4px); }
+  .auth-card h4 { margin-bottom: 8px; }
+
+  /* ═══ 测试金字塔 ═══ */
+  .pyramid {
+    display: flex; flex-direction: column; align-items: center; gap: 0; margin: 24px 0;
+  }
+  .pyramid-layer {
+    text-align: center; padding: 14px; border-radius: 8px; font-weight: 700;
+    font-size: 0.9em; transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .pyramid-layer:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(100,255,218,0.2);
+  }
+
+  /* ═══ 连接线（阶段之间） ═══ */
+  .connector {
+    width: 3px; height: 60px; margin: 0 auto;
+    background: linear-gradient(180deg, var(--border), transparent);
+    position: relative; z-index: 1;
+  }
+
+  /* ═══ 页脚 ═══ */
+  footer {
+    text-align: center; padding: 60px 24px; color: var(--text2); font-size: 0.85em;
+    position: relative; z-index: 1;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div id="progress"></div>
+
+<!-- 侧边导航 -->
+<nav class="side-nav">
+  <a href="#phase1"><span class="tip">需求分析</span></a>
+  <a href="#phase2"><span class="tip">接口设计</span></a>
+  <a href="#phase3"><span class="tip">后端开发</span></a>
+  <a href="#phase4"><span class="tip">前端开发</span></a>
+  <a href="#phase5"><span class="tip">接口测试</span></a>
+  <a href="#phase6"><span class="tip">联调集成</span></a>
+  <a href="#phase7"><span class="tip">部署上线</span></a>
+  <a href="#phase8"><span class="tip">运维监控</span></a>
+</nav>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero">
+  <h1>Halo 软件开发全生命周期</h1>
+  <p class="subtitle">以「创建文章」功能为主线，从需求分析到上线运维，完整展示接口在每个阶段的角色</p>
+  <span class="badge">Spring WebFlux · Vue 3 · TypeScript SDK · Postman · CI/CD</span>
+</section>
+
+<!-- ═══════════ 总览 ═══════════ -->
+<div class="container">
+<div class="full-section reveal">
+  <h2 style="background: linear-gradient(135deg, var(--blue), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">开发全流程总览</h2>
+  <p style="text-align:center; color:var(--text2); font-size:0.9em; margin-bottom: 16px;">主线流程（串行推进的关键节点）</p>
+  <div class="flow-box" style="gap: 6px;">
+    <div class="flow-step" style="border-color: var(--pink);"><span class="role role-pm">PM</span> 需求分析</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step" style="border-color: var(--blue);"><span class="role role-backend">架构</span> 接口设计</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step" style="border-color: var(--blue);"><span class="role role-backend">后端</span> 接口实现</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step" style="border-color: var(--cyan);">联调集成</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step" style="border-color: var(--green);"><span class="role role-ops">运维</span> 部署上线</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step" style="border-color: var(--green);"><span class="role role-ops">运维</span> 监控运营</div>
+  </div>
+  <!-- 并行甘特图 -->
+  <div style="margin-top: 20px; background: var(--surface2); border-radius: 12px; padding: 20px 24px; border: 1px solid var(--border);">
+    <p style="text-align:center; color: var(--text); font-size: 0.95em; font-weight: 700; margin-bottom: 14px;">
+      实际并行关系（多角色同时工作，并非严格串行）
+    </p>
+    <div style="display: grid; grid-template-columns: 70px 1fr; gap: 6px 12px; font-size: 0.82em; align-items: center;">
+      <span style="text-align:right; color:var(--text2);">日期</span>
+      <div style="display:flex; justify-content:space-between; color:var(--text2); padding: 0 4px;">
+        <span>第1天</span><span>第3天</span><span>第5天</span><span>第7天</span><span>第9天</span><span>第11天</span>
+      </div>
+      <span class="role role-pm" style="justify-self:end;">产品</span>
+      <div style="background: linear-gradient(90deg, rgba(255,121,198,0.3) 0%, rgba(255,121,198,0.3) 18%, transparent 18%); border-radius: 4px; height: 26px; position:relative;">
+        <span style="position:absolute; left:4px; top:3px; font-size:0.85em; color:var(--pink);">需求分析</span>
+      </div>
+      <span class="role role-backend" style="justify-self:end;">后端</span>
+      <div style="background: linear-gradient(90deg, transparent 9%, rgba(100,255,218,0.15) 9%, rgba(100,255,218,0.15) 18%, rgba(100,255,218,0.3) 18%, rgba(100,255,218,0.3) 64%, transparent 64%); border-radius: 4px; height: 26px; position:relative;">
+        <span style="position:absolute; left:12%; top:3px; font-size:0.85em; color:var(--blue);">设计</span>
+        <span style="position:absolute; left:30%; top:3px; font-size:0.85em; color:var(--blue);">编码实现（第3-7天）</span>
+      </div>
+      <span class="role role-frontend" style="justify-self:end;">前端</span>
+      <div style="background: linear-gradient(90deg, transparent 27%, rgba(189,147,249,0.3) 27%, rgba(189,147,249,0.3) 73%, transparent 73%); border-radius: 4px; height: 26px; position:relative;">
+        <span style="position:absolute; left:30%; top:3px; font-size:0.85em; color:var(--purple);">页面开发（第4-8天）</span>
+      </div>
+      <span class="role role-test" style="justify-self:end;">测试</span>
+      <div style="background: linear-gradient(90deg, transparent 9%, rgba(255,184,108,0.15) 9%, rgba(255,184,108,0.15) 27%, rgba(255,184,108,0.3) 27%, rgba(255,184,108,0.3) 82%, transparent 82%); border-radius: 4px; height: 26px; position:relative;">
+        <span style="position:absolute; left:11%; top:3px; font-size:0.85em; color:var(--orange);">写用例</span>
+        <span style="position:absolute; left:38%; top:3px; font-size:0.85em; color:var(--orange);">执行接口测试（第4-9天）</span>
+      </div>
+      <span style="text-align:right; color:var(--text2);">联调</span>
+      <div style="background: linear-gradient(90deg, transparent 73%, rgba(139,233,253,0.3) 73%, rgba(139,233,253,0.3) 91%, transparent 91%); border-radius: 4px; height: 26px; position:relative;">
+        <span style="position:absolute; left:75%; top:3px; font-size:0.85em; color:var(--cyan);">联调（第9-10天）</span>
+      </div>
+    </div>
+    <p style="text-align:center; color: var(--orange); font-size: 0.85em; margin-top: 12px;">
+      测试工程师从<strong>接口设计阶段</strong>就开始编写用例（测试左移），后端每完成一个接口就立即验证
+    </p>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 1: 需求分析                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="stage reveal" id="phase1">
+  <div class="stage-header">
+    <div class="stage-num" style="background: rgba(255,121,198,0.2); color: var(--pink); border: 2px solid var(--pink);">01</div>
+    <h2 style="color: var(--pink);">需求分析</h2>
+    <span class="time-badge">Sprint 第1天</span>
+  </div>
+  <div class="stage-card" style="border-top: 3px solid var(--pink);">
+    <p>产品经理提出需求，所有角色参与评审。以 Halo「文章管理」功能为例：</p>
+
+    <div class="sub-section">
+      <h3>需求描述</h3>
+      <ul>
+        <li>用户能<strong>创建文章草稿</strong>，填写标题、正文、分类、标签</li>
+        <li>用户能<strong>发布 / 取消发布</strong>文章</li>
+        <li>用户能<strong>回收（软删除）</strong>文章</li>
+        <li>用户能<strong>评论</strong>文章，管理员能审批 / 回复评论</li>
+        <li>访客能<strong>浏览文章列表</strong>和<strong>文章详情</strong></li>
+      </ul>
+    </div>
+
+    <div class="callout callout-orange">
+      <strong>测试左移：</strong>测试工程师此时就参与需求评审，提前思考：<br>
+      &middot; 标题是否有长度限制？空标题能否提交？<br>
+      &middot; 未登录能否创建文章？权限如何控制？<br>
+      &middot; 草稿 &rarr; 发布 &rarr; 回收 &rarr; 再发布，状态流转是否合理？<br>
+      这些问题会在后续转化为<strong>测试用例</strong>。
+    </div>
+
+    <div class="tri-col">
+      <div class="col" style="border-color: var(--pink);">
+        <h4 style="color: var(--pink);">产品经理</h4>
+        <p style="color:var(--text2); font-size:0.9em;">输出需求文档和原型图，定义功能边界和用户故事</p>
+      </div>
+      <div class="col" style="border-color: var(--blue);">
+        <h4 style="color: var(--blue);">后端开发</h4>
+        <p style="color:var(--text2); font-size:0.9em;">评估技术可行性，初步设计数据模型和 API 结构</p>
+      </div>
+      <div class="col" style="border-color: var(--orange);">
+        <h4 style="color: var(--orange);">测试工程师</h4>
+        <p style="color:var(--text2); font-size:0.9em;">识别测试要点，规划测试策略，准备测试环境</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="connector"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 2: 接口设计                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="stage reveal" id="phase2">
+  <div class="stage-header">
+    <div class="stage-num" style="background: rgba(100,255,218,0.2); color: var(--blue); border: 2px solid var(--blue);">02</div>
+    <h2 style="color: var(--blue);">接口设计</h2>
+    <span class="time-badge">Sprint 第2-3天</span>
+  </div>
+  <div class="stage-card" style="border-top: 3px solid var(--blue);">
+    <p>后端架构师根据需求，设计 RESTful API 规范。这是前后端协作的「契约」。</p>
+
+    <div class="sub-section">
+      <h3>Halo 文章管理接口清单</h3>
+      <div class="api-card">
+        <span class="method method-get">GET</span>
+        <span class="api-path">/api/v1alpha1/posts</span>
+        <span class="api-desc">获取文章列表（分页）</span>
+      </div>
+      <div class="api-card">
+        <span class="method method-post">POST</span>
+        <span class="api-path">/api/v1alpha1/posts</span>
+        <span class="api-desc">创建文章草稿</span>
+      </div>
+      <div class="api-card">
+        <span class="method method-put">PUT</span>
+        <span class="api-path">/api/v1alpha1/posts/{name}</span>
+        <span class="api-desc">更新文章信息</span>
+      </div>
+      <div class="api-card">
+        <span class="method method-put">PUT</span>
+        <span class="api-path">/api/v1alpha1/posts/{name}/content</span>
+        <span class="api-desc">更新文章正文</span>
+      </div>
+      <div class="api-card">
+        <span class="method method-put">PUT</span>
+        <span class="api-path">/api/v1alpha1/posts/{name}/publish</span>
+        <span class="api-desc">发布文章</span>
+      </div>
+      <div class="api-card">
+        <span class="method method-put">PUT</span>
+        <span class="api-path">/api/v1alpha1/posts/{name}/unpublish</span>
+        <span class="api-desc">取消发布</span>
+      </div>
+      <div class="api-card">
+        <span class="method method-put">PUT</span>
+        <span class="api-path">/api/v1alpha1/posts/{name}/recycle</span>
+        <span class="api-desc">回收（软删除）</span>
+      </div>
+      <div class="api-card">
+        <span class="method method-delete">DELETE</span>
+        <span class="api-path">/api/v1alpha1/posts/{name}/content</span>
+        <span class="api-desc">删除文章内容</span>
+      </div>
+    </div>
+
+    <div class="sub-section">
+      <h3>评论管理接口清单</h3>
+      <div class="api-card">
+        <span class="method method-get">GET</span>
+        <span class="api-path">/api/v1alpha1/comments</span>
+        <span class="api-desc">获取评论列表</span>
+      </div>
+      <div class="api-card">
+        <span class="method method-post">POST</span>
+        <span class="api-path">/api/v1alpha1/comments</span>
+        <span class="api-desc">创建评论</span>
+      </div>
+      <div class="api-card">
+        <span class="method method-post">POST</span>
+        <span class="api-path">/api/v1alpha1/comments/{name}/reply</span>
+        <span class="api-desc">回复评论</span>
+      </div>
+    </div>
+
+    <div class="callout callout-pink">
+      <strong>注意接口路径的两种写法：</strong><br>
+      &middot; <strong>设计阶段简写</strong>：<code>/api/v1alpha1/posts</code> &mdash; 接口文档和代码中的路径<br>
+      &middot; <strong>实际部署全路径</strong>：<code>/apis/api.console.halo.run/v1alpha1/posts</code> &mdash; Halo 服务器实际接收的 URL<br>
+      Halo 在部署时会给 Console API 加上 <code>/apis/api.console.halo.run</code> 前缀作为命名空间。<br>
+      后文 Postman 测试使用的是<strong>实际部署全路径</strong>。
+    </div>
+
+    <div class="callout callout-blue">
+      <strong>关键输出 &mdash; 两种接口文档：</strong><br>
+      1. <strong>OpenAPI 自动文档</strong>：Halo 后端通过 <code>@Schema</code> 注解 + SpringDoc，在编译时自动生成 OpenAPI JSON 规范，包含完整的字段类型、校验规则、枚举值。前端 SDK 从此文档生成。<br>
+      2. <strong>测试用接口文档</strong>：如 Halo V2.2 接口文档，是面向测试人员的使用说明，包含 Base URL、认证方式、业务场景示例，内容源自 OpenAPI 文档但经人工整理补充了测试指引。
+    </div>
+
+    <div class="callout callout-orange">
+      <strong>测试同步工作：</strong>根据接口文档编写测试用例，不用等后端开发完成！<br>
+      测试工程师在此阶段产出：<br>
+      &middot; 每个接口的<strong>正向 / 反向 / 边界测试用例</strong><br>
+      &middot; 接口间<strong>参数依赖关系</strong>（如创建文章 &rarr; 发布文章的 name 传递链）<br>
+      &middot; Postman Collection 骨架（请求模板 + 预期断言）
+    </div>
+  </div>
+</section>
+
+<div class="connector"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 3: 后端开发                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="stage reveal" id="phase3">
+  <div class="stage-header">
+    <div class="stage-num" style="background: rgba(100,255,218,0.2); color: var(--blue); border: 2px solid var(--blue);">03</div>
+    <h2 style="color: var(--blue);">后端开发</h2>
+    <span class="time-badge">Sprint 第3-7天</span>
+  </div>
+  <div class="stage-card" style="border-top: 3px solid var(--blue);">
+    <p>后端开发者将接口设计落地为代码。Halo 后端包含三层接口代码和一层横切安全机制：</p>
+
+    <!-- 路由定义 -->
+    <div class="sub-section">
+      <h3>第一层：路由定义（PostEndpoint.java）</h3>
+      <p style="font-size:0.9em; color:var(--text2);">
+        文件路径：<code>application/src/main/java/run/halo/app/core/endpoint/console/PostEndpoint.java</code>
+      </p>
+      <p>Halo 使用 Spring WebFlux 的 <code>RouterFunction</code> 链式定义所有路由：</p>
+      <div class="code-block">
+        <span class="lang-tag">Java &middot; PostEndpoint.java</span>
+<pre><span class="ann">@Override</span>
+<span class="kw">public</span> <span class="type">RouterFunction</span>&lt;<span class="type">ServerResponse</span>&gt; <span class="fn">endpoint</span>() {
+  <span class="kw">var</span> tag = <span class="str">"PostV1alpha1Console"</span>;
+  <span class="kw">return</span> <span class="type">SpringdocRouteBuilder</span>.<span class="fn">route</span>()
+    <span class="cmt">// 获取文章列表</span>
+    .<span class="fn">GET</span>(<span class="str">"/posts"</span>, <span class="kw">this</span>::<span class="fn">listPost</span>,
+      builder -> builder.operationId(<span class="str">"ListPosts"</span>)
+        .tag(tag).description(<span class="str">"List posts"</span>))
+    <span class="cmt">// 创建文章草稿</span>
+    .<span class="fn">POST</span>(<span class="str">"/posts"</span>, <span class="kw">this</span>::<span class="fn">draftPost</span>,
+      builder -> builder.operationId(<span class="str">"DraftPost"</span>)
+        .tag(tag).description(<span class="str">"Draft a post"</span>)
+        .requestBody(requestBodyBuilder()
+          .implementation(<span class="type">PostRequest</span>.<span class="kw">class</span>)))
+    <span class="cmt">// 更新文章</span>
+    .<span class="fn">PUT</span>(<span class="str">"/posts/{name}"</span>, <span class="kw">this</span>::<span class="fn">updatePost</span>,
+      builder -> builder.operationId(<span class="str">"UpdatePost"</span>).tag(tag))
+    <span class="cmt">// 发布文章</span>
+    .<span class="fn">PUT</span>(<span class="str">"/posts/{name}/publish"</span>, <span class="kw">this</span>::<span class="fn">publishPost</span>,
+      builder -> builder.operationId(<span class="str">"PublishPost"</span>).tag(tag))
+    <span class="cmt">// 取消发布</span>
+    .<span class="fn">PUT</span>(<span class="str">"/posts/{name}/unpublish"</span>, <span class="kw">this</span>::<span class="fn">unpublishPost</span>,
+      builder -> builder.operationId(<span class="str">"UnpublishPost"</span>).tag(tag))
+    <span class="cmt">// 回收文章</span>
+    .<span class="fn">PUT</span>(<span class="str">"/posts/{name}/recycle"</span>, <span class="kw">this</span>::<span class="fn">recyclePost</span>,
+      builder -> builder.operationId(<span class="str">"RecyclePost"</span>).tag(tag))
+    .<span class="fn">build</span>();
+}</pre>
+      </div>
+      <div class="callout callout-blue">
+        <strong>解读：</strong>每一行 <code>.GET()</code> / <code>.POST()</code> / <code>.PUT()</code> 定义一个接口。<br>
+        <code>operationId</code> 会出现在自动生成的 API 文档中，前端 TypeScript SDK 据此生成函数名。<br>
+        例如 <code>operationId("DraftPost")</code> &rarr; SDK 函数 <code>apiClient.post.draftPost()</code>
+      </div>
+    </div>
+
+    <!-- 数据模型 -->
+    <div class="sub-section">
+      <h3>第二层：数据模型（Post.java &mdash; @Schema 注解）</h3>
+      <p>Halo 用 Java 注解精确定义每个字段的规则，这些注解同时服务于三个目的：</p>
+      <div class="tri-col">
+        <div class="col" style="border-color: var(--blue);">
+          <h4 style="color: var(--blue);">代码校验</h4>
+          <p style="font-size:0.85em; color:var(--text2);">运行时验证请求数据合法性</p>
+        </div>
+        <div class="col" style="border-color: var(--cyan);">
+          <h4 style="color: var(--cyan);">文档生成</h4>
+          <p style="font-size:0.85em; color:var(--text2);">SpringDoc 据此生成 OpenAPI 文档</p>
+        </div>
+        <div class="col" style="border-color: var(--purple);">
+          <h4 style="color: var(--purple);">SDK 生成</h4>
+          <p style="font-size:0.85em; color:var(--text2);">前端 TypeScript SDK 据此生成类型</p>
+        </div>
+      </div>
+      <div class="code-block">
+        <span class="lang-tag">Java &middot; Post.java PostSpec</span>
+<pre><span class="kw">public class</span> <span class="type">PostSpec</span> {
+
+  <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>, minLength = <span class="num">1</span>)
+  <span class="kw">private</span> <span class="type">String</span> title;           <span class="cmt">// 必填，最少1字符</span>
+
+  <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>, minLength = <span class="num">1</span>)
+  <span class="kw">private</span> <span class="type">String</span> slug;            <span class="cmt">// 必填，URL标识符</span>
+
+  <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>)
+  <span class="kw">private</span> <span class="type">Boolean</span> deleted;        <span class="cmt">// 必填，是否已删除</span>
+
+  <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>)
+  <span class="kw">private</span> <span class="type">Boolean</span> publish;        <span class="cmt">// 必填，是否发布</span>
+
+  <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>)
+  <span class="kw">private</span> <span class="type">Boolean</span> pinned;         <span class="cmt">// 必填，是否置顶</span>
+
+  <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>)
+  <span class="kw">private</span> <span class="type">Boolean</span> allowComment;   <span class="cmt">// 必填，是否允许评论</span>
+
+  <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>)
+  <span class="kw">private</span> <span class="type">VisibleEnum</span> visible;   <span class="cmt">// 必填，枚举: PUBLIC | INTERNAL | PRIVATE</span>
+
+  <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>)
+  <span class="kw">private</span> <span class="type">Integer</span> priority;       <span class="cmt">// 必填，排序优先级</span>
+
+  <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>)
+  <span class="kw">private</span> <span class="type">Excerpt</span> excerpt;        <span class="cmt">// 必填，摘要配置</span>
+}</pre>
+      </div>
+
+      <div class="callout callout-purple">
+        <strong>注解 &rarr; 文档 &rarr; 测试的对应关系：</strong>
+        <table class="info-table" style="margin-top: 8px;">
+          <tr><th>代码注解</th><th>文档显示</th><th>测试用例</th></tr>
+          <tr>
+            <td><code>requiredMode = REQUIRED</code></td>
+            <td>字段标记为「必填」</td>
+            <td>缺少该字段时应返回 400</td>
+          </tr>
+          <tr>
+            <td><code>minLength = 1</code></td>
+            <td>最小长度 = 1</td>
+            <td>空字符串应返回 400</td>
+          </tr>
+          <tr>
+            <td><code>VisibleEnum</code></td>
+            <td>可选值：PUBLIC / INTERNAL / PRIVATE</td>
+            <td>传入 "INVALID" 应返回 400</td>
+          </tr>
+          <tr>
+            <td><code>defaultValue = "true"</code></td>
+            <td>默认值：true</td>
+            <td>不传时应默认为 true</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- 请求体 -->
+    <div class="sub-section">
+      <h3>第三层：请求体封装（PostRequest.java）</h3>
+      <p>创建文章需同时提交「文章元数据」和「文章内容」，用一个 record 类封装：</p>
+      <div class="code-block">
+        <span class="lang-tag">Java &middot; PostRequest.java</span>
+<pre><span class="kw">public record</span> <span class="type">PostRequest</span>(
+    <span class="ann">@NonNull</span>
+    <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>)
+    <span class="type">Post</span> post,          <span class="cmt">// 文章元数据（标题、slug、状态…）</span>
+
+    <span class="ann">@NonNull</span>
+    <span class="ann">@Schema</span>(requiredMode = <span class="type">RequiredMode</span>.<span class="num">REQUIRED</span>)
+    <span class="type">Content</span> content      <span class="cmt">// 文章正文（raw + HTML + rawType）</span>
+) {}</pre>
+      </div>
+      <p style="font-size:0.9em; color:var(--text2);">两层 <code>@NonNull</code> + <code>@Schema(REQUIRED)</code> 双重保障，缺少任一字段都会被拒绝。</p>
+    </div>
+
+    <!-- 认证 -->
+    <div class="sub-section">
+      <h3>横切层：认证与安全（中间件 / 过滤器）</h3>
+      <p>认证不属于某个具体接口的代码，而是作为<strong>全局中间件</strong>统一拦截所有请求。Halo 支持三种认证方式：</p>
+      <div class="auth-cards">
+        <div class="auth-card" style="border-top: 3px solid var(--blue);">
+          <h4 style="color: var(--blue);">Basic Auth</h4>
+          <p style="font-size:0.85em; color:var(--text2);">
+            用户名密码 Base64 编码<br>
+            <code style="font-size:0.8em;">Authorization: Basic bWV0...</code><br>
+            适合：Postman 调试、快速测试
+          </p>
+        </div>
+        <div class="auth-card" style="border-top: 3px solid var(--purple);">
+          <h4 style="color: var(--purple);">Session + CSRF</h4>
+          <p style="font-size:0.85em; color:var(--text2);">
+            登录获取 Session Cookie<br>
+            写操作需带 CSRF Token<br>
+            适合：浏览器前端（Halo Console）
+          </p>
+        </div>
+        <div class="auth-card" style="border-top: 3px solid var(--orange);">
+          <h4 style="color: var(--orange);">PAT 个人令牌</h4>
+          <p style="font-size:0.85em; color:var(--text2);">
+            Personal Access Token<br>
+            <code style="font-size:0.8em;">Authorization: Bearer pat_...</code><br>
+            适合：第三方集成、自动化脚本
+          </p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <span class="lang-tag">HTTP &middot; Session + CSRF 认证流程</span>
+<pre><span class="cmt">// 步骤1: 登录获取 Session 和 CSRF Token</span>
+<span class="kw">POST</span> <span class="str">/login</span>
+Content-Type: application/x-www-form-urlencoded
+
+username=meterspheretest&amp;password=Fit2cloud@2023
+
+<span class="cmt">// 响应 Set-Cookie:</span>
+<span class="cmt">//   SESSION=abc123...</span>
+<span class="cmt">//   XSRF-TOKEN=xyz789...</span>
+
+<span class="cmt">// 步骤2: 后续写操作必须带上两个值</span>
+<span class="kw">POST</span> <span class="str">/api/v1alpha1/posts</span>
+Cookie: SESSION=abc123...
+X-XSRF-TOKEN: xyz789...
+Content-Type: application/json
+
+{ ... }</pre>
+      </div>
+    </div>
+
+    <div class="callout callout-green">
+      <strong>后端开发完成的标志：</strong><br>
+      &middot; 接口可以通过 Postman 独立调用并返回正确结果<br>
+      &middot; 返回值格式符合接口文档约定<br>
+      &middot; 认证机制正常工作（有凭证 &rarr; 通过，无凭证 &rarr; 401）<br>
+      &middot; 数据正确写入数据库<br>
+      <em>此时前端可能还没开发完！但接口已经可以被测试。</em>
+    </div>
+  </div>
+</section>
+
+<div class="connector"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 4: 前端开发                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="stage reveal" id="phase4">
+  <div class="stage-header">
+    <div class="stage-num" style="background: rgba(189,147,249,0.2); color: var(--purple); border: 2px solid var(--purple);">04</div>
+    <h2 style="color: var(--purple);">前端开发</h2>
+    <span class="time-badge">Sprint 第4-8天（与后端并行推进）</span>
+  </div>
+  <div class="stage-card" style="border-top: 3px solid var(--purple);">
+    <p>前端<strong>不需要等后端全部完成</strong>才开始。接口设计（Phase 2）确定了 API 契约后，前端就能基于 TypeScript SDK 或接口文档进行开发。</p>
+    <div class="callout callout-purple" style="margin-bottom: 16px;">
+      <strong>前后端并行的前提：</strong>接口契约（URL、请求格式、响应格式）已在 Phase 2 确定。<br>
+      &middot; 后端未就绪时：前端用 SDK 类型定义编写代码，用 Mock 数据渲染页面<br>
+      &middot; 后端完成一个接口后：前端切换到真实 API 调用，逐步联调验证
+    </div>
+
+    <div class="sub-section">
+      <h3>Halo 前端的独特之处：TypeScript SDK 自动生成</h3>
+      <div class="flow-box">
+        <div class="flow-step" style="border-color: var(--blue);">后端 @Schema 注解</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step" style="border-color: var(--cyan);">SpringDoc 生成 OpenAPI JSON</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step" style="border-color: var(--purple);">openapi-generator 生成 TS SDK</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-step" style="border-color: var(--green);">前端直接调用类型安全函数</div>
+      </div>
+      <p style="font-size:0.9em; color:var(--text2);">
+        前端不用手写 HTTP 请求代码，直接导入 SDK 函数即可。参数类型、响应类型全部自动推断。
+      </p>
+    </div>
+
+    <div class="sub-section">
+      <h3>文章列表页（PostList.vue）</h3>
+      <p style="font-size:0.9em; color:var(--text2);">
+        文件路径：<code>ui/console-src/modules/contents/posts/PostList.vue</code>
+      </p>
+      <div class="code-block">
+        <span class="lang-tag">Vue 3 &middot; PostList.vue</span>
+<pre><span class="kw">import</span> { apiClient } <span class="kw">from</span> <span class="str">"@halo-dev/api-client"</span>;
+
+<span class="cmt">// 获取文章列表 — SDK 自动处理认证和请求格式</span>
+<span class="kw">const</span> { data } = <span class="kw">await</span> apiClient.post.<span class="fn">listPosts</span>({
+  page: <span class="num">1</span>,
+  size: <span class="num">20</span>,
+  sort: [<span class="str">"creationTimestamp,desc"</span>]
+});
+
+<span class="cmt">// 发布文章 — 只需传 metadata.name</span>
+<span class="kw">await</span> apiClient.post.<span class="fn">publishPost</span>({
+  name: post.metadata.name  <span class="cmt">// &larr; 来自创建时返回值</span>
+});
+
+<span class="cmt">// 回收文章</span>
+<span class="kw">await</span> apiClient.post.<span class="fn">recyclePost</span>({
+  name: post.metadata.name
+});
+
+<span class="cmt">// 取消发布</span>
+<span class="kw">await</span> apiClient.post.<span class="fn">unpublishPost</span>({
+  name: post.metadata.name
+});</pre>
+      </div>
+    </div>
+
+    <div class="sub-section">
+      <h3>文章编辑器（PostEditor.vue）</h3>
+      <p style="font-size:0.9em; color:var(--text2);">
+        文件路径：<code>ui/console-src/modules/contents/posts/PostEditor.vue</code>
+      </p>
+      <div class="code-block">
+        <span class="lang-tag">Vue 3 &middot; PostEditor.vue</span>
+<pre><span class="cmt">// 创建草稿 — 对应后端 POST /api/v1alpha1/posts</span>
+<span class="kw">const</span> { data: newPost } = <span class="kw">await</span> apiClient.post.<span class="fn">draftPost</span>({
+  postRequest: {
+    post: {
+      spec: {
+        title: <span class="str">"我的新文章"</span>,
+        slug: <span class="str">"my-new-post"</span>,
+        visible: <span class="str">"PUBLIC"</span>,
+        deleted: <span class="num">false</span>,
+        publish: <span class="num">false</span>,         <span class="cmt">// 先存为草稿</span>
+        pinned: <span class="num">false</span>,
+        allowComment: <span class="num">true</span>,
+        priority: <span class="num">0</span>,
+        excerpt: { autoGenerate: <span class="num">true</span> }
+      },
+      apiVersion: <span class="str">"content.halo.run/v1alpha1"</span>,
+      kind: <span class="str">"Post"</span>,
+      metadata: { name: <span class="str">""</span> }    <span class="cmt">// 空 — 后端自动生成</span>
+    },
+    content: {
+      raw: formState.content,
+      content: formState.contentHtml,
+      rawType: <span class="str">"HTML"</span>
+    }
+  }
+});
+
+<span class="cmt">// 保存返回的 name，后续操作都要用它</span>
+<span class="kw">const</span> postName = newPost.metadata.name;
+<span class="cmt">// 例如: "5152aea5-c2e8-4717-8bab-3e32db193457"</span>
+
+<span class="cmt">// 更新文章内容</span>
+<span class="kw">await</span> apiClient.post.<span class="fn">updatePostContent</span>({
+  name: postName,
+  content: { raw: newContent, content: newHtml, rawType: <span class="str">"HTML"</span> }
+});
+
+<span class="cmt">// 一键发布</span>
+<span class="kw">await</span> apiClient.post.<span class="fn">publishPost</span>({ name: postName });</pre>
+      </div>
+    </div>
+
+    <div class="callout callout-purple">
+      <strong>接口参数依赖链（关键概念）：</strong><br>
+      创建文章 &rarr; 返回 <code>metadata.name</code> &rarr; 用于发布 / 更新 / 回收<br>
+      创建评论 &rarr; 返回 <code>metadata.name</code> &rarr; 用于回复 / 审批 / 删除<br><br>
+      测试时也必须遵循这个顺序，Postman 用<strong>环境变量</strong>在接口间传递参数。
+    </div>
+  </div>
+</section>
+
+<div class="connector"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 5: 接口测试                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="stage reveal" id="phase5">
+  <div class="stage-header">
+    <div class="stage-num" style="background: rgba(255,184,108,0.2); color: var(--orange); border: 2px solid var(--orange);">05</div>
+    <h2 style="color: var(--orange);">接口测试</h2>
+    <span class="time-badge">Sprint 第2天起编写用例，第4-9天执行测试</span>
+  </div>
+  <div class="stage-card" style="border-top: 3px solid var(--orange);">
+    <p>质量保障的核心阶段。测试工作分两步：先根据接口文档<strong>编写用例</strong>（第2-3天，与后端开发并行），后端每完成一个接口再<strong>执行验证</strong>（第4天起）。</p>
+
+    <!-- 金字塔 -->
+    <div class="sub-section">
+      <h3>接口测试在测试金字塔中的位置</h3>
+      <div class="pyramid">
+        <div class="pyramid-layer" style="width:30%; background:rgba(255,85,85,0.15); color:var(--red); border:1px solid var(--red);">
+          E2E 端到端测试（最少 &middot; 最慢 &middot; 最贵）<br>
+          <span style="font-size:0.8em;">Selenium / Playwright 模拟浏览器操作</span>
+        </div>
+        <div class="pyramid-layer" style="width:50%; background:rgba(255,184,108,0.2); color:var(--orange); border:2px solid var(--orange); margin-top:4px; box-shadow:0 0 20px rgba(255,184,108,0.3);">
+          接口测试 API Test（核心主力 &middot; 占 60-70%）<br>
+          <span style="font-size:0.8em;">Postman / JUnit / pytest 直接调用接口</span>
+        </div>
+        <div class="pyramid-layer" style="width:70%; background:rgba(80,250,123,0.15); color:var(--green); border:1px solid var(--green); margin-top:4px;">
+          单元测试 Unit Test（最多 &middot; 最快 &middot; 最便宜）<br>
+          <span style="font-size:0.8em;">JUnit / Jest 测试单个函数逻辑</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4层覆盖 -->
+    <div class="sub-section">
+      <h3>接口测试的4层覆盖</h3>
+      <table class="info-table">
+        <tr><th>测试层</th><th>验证内容</th><th>Halo 示例</th></tr>
+        <tr>
+          <td style="color:var(--blue);">路由层</td>
+          <td>URL 能否正确到达处理函数</td>
+          <td><code>GET /api/v1alpha1/posts</code> 返回 200</td>
+        </tr>
+        <tr>
+          <td style="color:var(--purple);">认证层</td>
+          <td>未认证请求是否被拦截</td>
+          <td>不带 Authorization &rarr; 返回 401</td>
+        </tr>
+        <tr>
+          <td style="color:var(--orange);">业务层</td>
+          <td>业务逻辑是否正确</td>
+          <td>创建文章 &rarr; 返回 <code>metadata.name</code></td>
+        </tr>
+        <tr>
+          <td style="color:var(--green);">数据层</td>
+          <td>数据库是否正确读写</td>
+          <td>创建后 GET 能查到该文章</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 3层用例 -->
+    <div class="sub-section">
+      <h3>测试用例设计：正向 / 反向 / 边界</h3>
+      <div class="tri-col">
+        <div class="col" style="border-color: var(--green);">
+          <h4 style="color: var(--green);">正向测试</h4>
+          <ul style="font-size:0.85em; color:var(--text2);">
+            <li>完整参数创建文章 &rarr; 200</li>
+            <li>发布草稿 &rarr; publish=true</li>
+            <li>分页查询第2页 &rarr; 正确数据</li>
+            <li>回收文章 &rarr; deleted=true</li>
+          </ul>
+        </div>
+        <div class="col" style="border-color: var(--red);">
+          <h4 style="color: var(--red);">反向测试</h4>
+          <ul style="font-size:0.85em; color:var(--text2);">
+            <li>title 为空 &rarr; 400</li>
+            <li>visible 传 "INVALID" &rarr; 400</li>
+            <li>不带认证 &rarr; 401</li>
+            <li>操作别人的文章 &rarr; 403</li>
+          </ul>
+        </div>
+        <div class="col" style="border-color: var(--yellow);">
+          <h4 style="color: var(--yellow);">边界测试</h4>
+          <ul style="font-size:0.85em; color:var(--text2);">
+            <li>title 仅1字符 &rarr; 成功</li>
+            <li>title 超长10000字符 &rarr; ?</li>
+            <li>slug 含特殊字符 &rarr; ?</li>
+            <li>priority 为负数 &rarr; ?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Postman 5步链式测试 -->
+    <div class="sub-section">
+      <h3>Postman 实战：完整5步链式测试</h3>
+
+      <div class="callout callout-blue" style="margin-bottom: 16px;">
+        <strong>为什么是「链式」？</strong><br>
+        接口之间有参数依赖：创建文章返回的 <code>metadata.name</code> 是后续所有操作的入参。<br>
+        Postman 用<strong>环境变量</strong>在接口间自动传递这些值。
+      </div>
+
+      <!-- Step 1 -->
+      <p style="font-weight:700; color:var(--blue); margin-bottom: 8px;">Step 1：创建文章草稿</p>
+      <div class="code-block">
+        <span class="lang-tag">Postman &middot; Request</span>
+<pre><span class="kw">POST</span> <span class="str">http://halo.edu.metersphere.com/apis/api.console.halo.run/v1alpha1/posts</span>
+
+<span class="cmt">// Headers</span>
+Authorization: Basic bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz
+Content-Type: application/json
+
+<span class="cmt">// Body</span>
+{
+  <span class="str">"post"</span>: {
+    <span class="str">"spec"</span>: {
+      <span class="str">"title"</span>: <span class="str">"接口测试文章"</span>,
+      <span class="str">"slug"</span>: <span class="str">"api-test-post"</span>,
+      <span class="str">"visible"</span>: <span class="str">"PUBLIC"</span>,
+      <span class="str">"deleted"</span>: <span class="num">false</span>,
+      <span class="str">"publish"</span>: <span class="num">false</span>,
+      <span class="str">"pinned"</span>: <span class="num">false</span>,
+      <span class="str">"allowComment"</span>: <span class="num">true</span>,
+      <span class="str">"priority"</span>: <span class="num">0</span>,
+      <span class="str">"excerpt"</span>: { <span class="str">"autoGenerate"</span>: <span class="num">true</span> }
+    },
+    <span class="str">"apiVersion"</span>: <span class="str">"content.halo.run/v1alpha1"</span>,
+    <span class="str">"kind"</span>: <span class="str">"Post"</span>,
+    <span class="str">"metadata"</span>: { <span class="str">"name"</span>: <span class="str">""</span> }
+  },
+  <span class="str">"content"</span>: {
+    <span class="str">"raw"</span>: <span class="str">"这是测试内容"</span>,
+    <span class="str">"content"</span>: <span class="str">"&lt;p&gt;这是测试内容&lt;/p&gt;"</span>,
+    <span class="str">"rawType"</span>: <span class="str">"HTML"</span>
+  }
+}</pre>
+      </div>
+      <div class="code-block">
+        <span class="lang-tag">Postman &middot; Tests 脚本（自动保存返回值）</span>
+<pre><span class="cmt">// 验证状态码</span>
+pm.test(<span class="str">"创建成功，返回 200"</span>, <span class="kw">function</span>() {
+  pm.response.to.have.status(<span class="num">200</span>);
+});
+
+<span class="cmt">// 提取 metadata.name 存入环境变量</span>
+<span class="kw">var</span> jsonData = pm.response.json();
+pm.environment.set(<span class="str">"postName"</span>, jsonData.metadata.name);
+
+pm.test(<span class="str">"返回了 metadata.name"</span>, <span class="kw">function</span>() {
+  pm.expect(jsonData.metadata.name).to.not.be.empty;
+});</pre>
+      </div>
+
+      <!-- Step 2 -->
+      <p style="font-weight:700; color:var(--cyan); margin: 16px 0 8px;">Step 2：查询文章列表（验证创建成功）</p>
+      <div class="code-block">
+        <span class="lang-tag">Postman &middot; Request</span>
+<pre><span class="kw">GET</span> <span class="str">http://halo.edu.metersphere.com/apis/api.console.halo.run/v1alpha1/posts</span>
+Authorization: Basic bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz</pre>
+      </div>
+      <div class="code-block">
+        <span class="lang-tag">Postman &middot; Tests 脚本</span>
+<pre>pm.test(<span class="str">"列表包含刚创建的文章"</span>, <span class="kw">function</span>() {
+  <span class="kw">var</span> jsonData = pm.response.json();
+  <span class="kw">var</span> postName = pm.environment.get(<span class="str">"postName"</span>);
+  <span class="kw">var</span> found = jsonData.items.some(
+    <span class="kw">function</span>(item) { <span class="kw">return</span> item.metadata.name === postName; }
+  );
+  pm.expect(found).to.be.true;
+});</pre>
+      </div>
+
+      <!-- Step 3 -->
+      <p style="font-weight:700; color:var(--green); margin: 16px 0 8px;">Step 3：发布文章</p>
+      <div class="code-block">
+        <span class="lang-tag">Postman &middot; Request</span>
+<pre><span class="kw">PUT</span> <span class="str">http://halo.edu.metersphere.com/apis/api.console.halo.run/v1alpha1/posts/{{postName}}/publish</span>
+Authorization: Basic bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz
+
+<span class="cmt">// {{postName}} 自动替换为 Step 1 保存的值</span></pre>
+      </div>
+      <div class="code-block">
+        <span class="lang-tag">Postman &middot; Tests 脚本</span>
+<pre>pm.test(<span class="str">"发布成功"</span>, <span class="kw">function</span>() {
+  pm.response.to.have.status(<span class="num">200</span>);
+});
+pm.test(<span class="str">"文章状态变为已发布"</span>, <span class="kw">function</span>() {
+  <span class="kw">var</span> jsonData = pm.response.json();
+  pm.expect(jsonData.spec.publish).to.be.true;
+});</pre>
+      </div>
+
+      <!-- Step 4 -->
+      <p style="font-weight:700; color:var(--yellow); margin: 16px 0 8px;">Step 4：回收文章（软删除）</p>
+      <div class="code-block">
+        <span class="lang-tag">Postman &middot; Request</span>
+<pre><span class="kw">PUT</span> <span class="str">http://halo.edu.metersphere.com/apis/api.console.halo.run/v1alpha1/posts/{{postName}}/recycle</span>
+Authorization: Basic bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz</pre>
+      </div>
+      <div class="code-block">
+        <span class="lang-tag">Postman &middot; Tests 脚本</span>
+<pre>pm.test(<span class="str">"回收成功"</span>, <span class="kw">function</span>() {
+  pm.response.to.have.status(<span class="num">200</span>);
+});
+pm.test(<span class="str">"deleted 标记为 true"</span>, <span class="kw">function</span>() {
+  <span class="kw">var</span> jsonData = pm.response.json();
+  pm.expect(jsonData.spec.deleted).to.be.true;
+});</pre>
+      </div>
+
+      <!-- Step 5 -->
+      <p style="font-weight:700; color:var(--red); margin: 16px 0 8px;">Step 5：反向测试 &mdash; 缺少必填字段</p>
+      <div class="code-block">
+        <span class="lang-tag">Postman &middot; Request（故意不传 title 和 slug）</span>
+<pre><span class="kw">POST</span> <span class="str">http://halo.edu.metersphere.com/apis/api.console.halo.run/v1alpha1/posts</span>
+Authorization: Basic bWV0ZXJzcGhlcmV0ZXN0OkZpdDJjbG91ZEAyMDIz
+
+{
+  <span class="str">"post"</span>: {
+    <span class="str">"spec"</span>: {
+      <span class="cmt">// 故意不传 title 和 slug（@Schema REQUIRED）</span>
+      <span class="str">"visible"</span>: <span class="str">"PUBLIC"</span>,
+      <span class="str">"deleted"</span>: <span class="num">false</span>,
+      <span class="str">"publish"</span>: <span class="num">false</span>
+    },
+    <span class="str">"apiVersion"</span>: <span class="str">"content.halo.run/v1alpha1"</span>,
+    <span class="str">"kind"</span>: <span class="str">"Post"</span>,
+    <span class="str">"metadata"</span>: { <span class="str">"name"</span>: <span class="str">""</span> }
+  },
+  <span class="str">"content"</span>: { <span class="str">"raw"</span>: <span class="str">"test"</span>, <span class="str">"content"</span>: <span class="str">"test"</span>, <span class="str">"rawType"</span>: <span class="str">"HTML"</span> }
+}</pre>
+      </div>
+      <div class="code-block">
+        <span class="lang-tag">Postman &middot; Tests 脚本</span>
+<pre>pm.test(<span class="str">"缺少必填字段应返回 400"</span>, <span class="kw">function</span>() {
+  pm.response.to.have.status(<span class="num">400</span>);
+});</pre>
+      </div>
+
+      <!-- 流程图 -->
+      <div style="margin-top: 24px;">
+        <h4 style="text-align:center; margin-bottom: 12px;">Postman Collection Runner 自动执行流程</h4>
+        <div class="flow-box">
+          <div class="flow-step" style="border-color: var(--blue);">Step 1<br><span style="font-size:0.8em;">创建草稿</span></div>
+          <span class="flow-arrow">&rarr;<br><span style="font-size:0.65em;">保存 postName</span></span>
+          <div class="flow-step" style="border-color: var(--cyan);">Step 2<br><span style="font-size:0.8em;">查询验证</span></div>
+          <span class="flow-arrow">&rarr;<br><span style="font-size:0.65em;">用 postName</span></span>
+          <div class="flow-step" style="border-color: var(--green);">Step 3<br><span style="font-size:0.8em;">发布文章</span></div>
+          <span class="flow-arrow">&rarr;<br><span style="font-size:0.65em;">用 postName</span></span>
+          <div class="flow-step" style="border-color: var(--yellow);">Step 4<br><span style="font-size:0.8em;">回收文章</span></div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="flow-step" style="border-color: var(--red);">Step 5<br><span style="font-size:0.8em;">反向测试</span></div>
+        </div>
+        <p style="text-align:center; font-size:0.85em; color:var(--text2); margin-top: 8px;">
+          点击 Postman「Run Collection」按钮，5步依次自动执行，环境变量自动传递
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="connector"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 6: 联调集成                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="stage reveal" id="phase6">
+  <div class="stage-header">
+    <div class="stage-num" style="background: rgba(139,233,253,0.2); color: var(--cyan); border: 2px solid var(--cyan);">06</div>
+    <h2 style="color: var(--cyan);">联调集成</h2>
+    <span class="time-badge">Sprint 第8-10天（与接口测试尾部重叠）</span>
+  </div>
+  <div class="stage-card" style="border-top: 3px solid var(--cyan);">
+    <p>前后端代码基本完成，现在要「合体」&mdash; 确保前端页面与后端接口完美配合。</p>
+    <div class="callout callout-blue" style="margin-bottom: 16px;">
+      <strong>时间关系说明：</strong>联调并非等接口测试全部完成后才开始。<br>
+      当后端核心接口通过接口测试后，前端就可以开始联调。此时接口测试的<strong>反向 / 边界用例</strong>可能仍在执行中。<br>
+      两者并行推进：联调发现的问题也会补充到接口测试用例中。
+    </div>
+
+    <div class="sub-section">
+      <h3>联调中常见的问题</h3>
+      <table class="info-table">
+        <tr><th>问题类型</th><th>示例</th><th>如何在接口测试阶段提前发现</th></tr>
+        <tr>
+          <td style="color:var(--red);">字段名不一致</td>
+          <td>前端期望 <code>postTitle</code>，后端返回 <code>title</code></td>
+          <td>接口文档 + SDK 自动生成可避免</td>
+        </tr>
+        <tr>
+          <td style="color:var(--red);">数据类型不匹配</td>
+          <td>前端期望 <code>string</code>，后端返回 <code>number</code></td>
+          <td>Postman Tests 脚本验证响应格式</td>
+        </tr>
+        <tr>
+          <td style="color:var(--red);">认证方式差异</td>
+          <td>前端用 Session，测试用 Basic Auth</td>
+          <td>同时覆盖两种认证方式的测试</td>
+        </tr>
+        <tr>
+          <td style="color:var(--red);">分页参数不一致</td>
+          <td>前端从0开始计页，后端从1开始</td>
+          <td>接口测试验证边界页码（page=0）</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="callout callout-blue">
+      <strong>Halo 的优势 &mdash; 契约驱动开发：</strong><br>
+      因为前端使用从 OpenAPI 自动生成的 TypeScript SDK，字段名和类型<strong>不可能出错</strong> &mdash; 它们直接来自后端的 <code>@Schema</code> 注解。这就是「<strong>Single Source of Truth</strong>（单一数据源）」的力量。
+    </div>
+
+    <div class="sub-section">
+      <h3>联调验证清单</h3>
+      <ul>
+        <li>PostEditor.vue 创建文章 &rarr; 文章出现在 PostList.vue 列表中</li>
+        <li>PostList.vue 点击发布 &rarr; 文章状态变为「已发布」</li>
+        <li>PostList.vue 点击回收 &rarr; 文章移入回收站</li>
+        <li>PostEditor.vue 加载已有文章 &rarr; 内容完整显示（fetchPostHeadContent）</li>
+        <li>未登录访问管理后台 &rarr; 重定向到登录页</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<div class="connector"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 7: 部署上线                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="stage reveal" id="phase7">
+  <div class="stage-header">
+    <div class="stage-num" style="background: rgba(80,250,123,0.2); color: var(--green); border: 2px solid var(--green);">07</div>
+    <h2 style="color: var(--green);">部署上线</h2>
+    <span class="time-badge">Sprint 第11天</span>
+  </div>
+  <div class="stage-card" style="border-top: 3px solid var(--green);">
+    <p>代码通过所有测试后，通过 CI/CD 流水线自动部署。接口测试在这里以<strong>自动化回归</strong>的形式运行。</p>
+
+    <div class="sub-section">
+      <h3>CI/CD 流水线中的接口测试</h3>
+      <div class="code-block">
+        <span class="lang-tag">CI/CD Pipeline</span>
+<pre><span class="cmt">// 开发者提交代码 → 自动触发流水线</span>
+
+<span class="ann">Stage 1:</span> <span class="fn">代码编译</span>
+  &rarr; gradle build                            <span class="cmt">// 30秒</span>
+
+<span class="ann">Stage 2:</span> <span class="fn">单元测试</span>（不需要启动服务器）
+  &rarr; gradle test                             <span class="cmt">// 2分钟</span>
+  &rarr; 验证 PostSpec 字段校验逻辑
+  &rarr; 验证业务函数的输入输出
+
+<span class="ann">Stage 3:</span> <span class="fn">部署到测试环境</span>
+  &rarr; docker deploy staging                   <span class="cmt">// 3分钟</span>
+  <span class="cmt">// 接口测试需要真实运行的服务，必须先部署</span>
+
+<span class="ann">Stage 4:</span> <span class="fn">接口测试（自动化回归）</span>               <span class="cmt">// ← 关键阶段！</span>
+  &rarr; newman run halo-api-tests.json          <span class="cmt">// 5分钟</span>
+  &rarr; 对测试环境发送真实 HTTP 请求
+  &rarr; 创建→查询→发布→回收 全流程验证
+  &rarr; 认证测试：无认证→401, 错误凭证→401
+  &rarr; 反向测试：缺字段→400, 无效枚举→400
+
+<span class="ann">Stage 5:</span> <span class="fn">E2E 冒烟测试</span>
+  &rarr; 核心页面流程快速验证                       <span class="cmt">// 10分钟</span>
+
+<span class="ann">Stage 6:</span> <span class="fn">部署到生产环境</span>  <span class="type">✓ 全部通过</span>
+  &rarr; docker deploy production</pre>
+      </div>
+
+      <div class="callout callout-green">
+        <strong>Newman：</strong>Postman 的命令行运行工具。它能在 CI/CD 中自动运行 Postman Collection，不需要图形界面。<br>
+        这就是从「手动测试」到「自动化测试」的桥梁。
+      </div>
+    </div>
+
+    <div class="sub-section">
+      <h3>回归测试的价值 &mdash; 真实案例</h3>
+      <p>假设某天开发者不小心修改了 PostEndpoint.java 中的路由：</p>
+      <div class="code-block">
+<pre><span class="cmt">// 原始代码</span>
+.<span class="fn">PUT</span>(<span class="str">"/posts/{name}/publish"</span>, ...)
+
+<span class="cmt">// 不小心改成了</span>
+.<span class="fn">PUT</span>(<span class="str">"/posts/{name}/pub"</span>, ...)   <span class="cmt">// ← 路径变了！</span></pre>
+      </div>
+      <p>CI/CD 中的接口测试会<strong>立即失败</strong>：</p>
+      <div class="code-block">
+<pre><span style="color:var(--red);">✗ FAIL</span>  PUT /posts/{{postName}}/publish → <span style="color:var(--red);">404 Not Found</span>
+        Expected status: 200, Received: 404
+
+<span style="color:var(--red);">Pipeline FAILED — 代码被阻止合并到主分支</span></pre>
+      </div>
+      <p style="color:var(--text2); font-size:0.9em;">问题在部署之前就被捕获，不会影响线上用户。这就是自动化回归测试的核心价值。</p>
+    </div>
+  </div>
+</section>
+
+<div class="connector"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- PHASE 8: 运维监控                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section class="stage reveal" id="phase8">
+  <div class="stage-header">
+    <div class="stage-num" style="background: rgba(80,250,123,0.2); color: var(--green); border: 2px solid var(--green);">08</div>
+    <h2 style="color: var(--green);">运维监控</h2>
+    <span class="time-badge">上线后持续运行</span>
+  </div>
+  <div class="stage-card" style="border-top: 3px solid var(--green);">
+    <p>接口测试的变体 &mdash; <strong>接口健康监控</strong>，确保线上服务 7&times;24 可用。</p>
+
+    <div class="sub-section">
+      <h3>接口健康检查</h3>
+      <div class="code-block">
+        <span class="lang-tag">监控脚本（每5分钟自动执行）</span>
+<pre><span class="cmt">// 核心接口可用性检查（只用读操作，避免产生脏数据）</span>
+
+<span class="ann">每5分钟:</span>
+  GET  /api/v1alpha1/posts       &rarr; 响应 &lt; 500ms  <span class="ann">✓</span>
+  GET  /api/v1alpha1/categories  &rarr; 响应 &lt; 300ms  <span class="ann">✓</span>
+  GET  /actuator/health          &rarr; status: UP    <span class="ann">✓</span>
+
+<span class="cmt">// 注意：线上监控只使用 GET（读操作）</span>
+<span class="cmt">// 绝不在生产环境用 POST/PUT/DELETE 做健康检查</span>
+<span class="cmt">// 否则会产生大量测试数据污染线上数据库</span>
+
+<span class="ann">如果任一检查失败:</span>
+  &rarr; 发送告警（邮件 / Slack / 钉钉）
+  &rarr; 记录故障时间点和错误详情
+  &rarr; 自动触发故障排查流程</pre>
+      </div>
+    </div>
+
+    <div class="sub-section">
+      <h3>接口测试贯穿整个生命周期</h3>
+      <table class="info-table">
+        <tr><th>阶段</th><th>接口测试的形态</th><th>目标</th></tr>
+        <tr><td>需求分析</td><td>测试用例设计</td><td>提前发现需求漏洞</td></tr>
+        <tr><td>接口设计</td><td>文档评审</td><td>验证接口规范合理性</td></tr>
+        <tr><td>后端开发</td><td>Postman 手动测试</td><td>逐个接口验证正确性</td></tr>
+        <tr><td>前端开发</td><td>Mock + 联调测试</td><td>确保前端调用正确</td></tr>
+        <tr><td>联调集成</td><td>端到端验证</td><td>前后端配合正确</td></tr>
+        <tr><td>部署上线</td><td>CI/CD 自动化回归</td><td>防止新代码破坏旧功能</td></tr>
+        <tr><td>运维监控</td><td>接口健康检查</td><td>确保线上服务可用</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 全景总结                                                 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="container">
+<div class="full-section reveal" style="margin-top: 80px;">
+  <h2 style="background: linear-gradient(135deg, var(--blue), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+    全景回顾：一个字段如何贯穿整条链路
+  </h2>
+  <p style="text-align:center; color:var(--text2); margin-bottom: 24px;">以 Halo「创建文章」的 <code>title</code> 字段为例</p>
+
+  <div class="flow-box" style="flex-direction:column; gap: 0;">
+    <div class="flow-step" style="border-color: var(--blue); width: 80%; text-align: center;">
+      <strong style="color:var(--blue);">后端代码定义</strong><br>
+      <code>@Schema(requiredMode = REQUIRED, minLength = 1) String title</code>
+    </div>
+    <span class="flow-arrow" style="font-size:1.5em;">&darr;</span>
+    <div class="flow-step" style="border-color: var(--cyan); width: 80%; text-align: center;">
+      <strong style="color:var(--cyan);">OpenAPI 文档自动生成</strong><br>
+      <code>title: { type: string, required: true, minLength: 1 }</code>
+    </div>
+    <span class="flow-arrow" style="font-size:1.5em;">&darr;</span>
+    <div class="flow-step" style="border-color: var(--purple); width: 80%; text-align: center;">
+      <strong style="color:var(--purple);">TypeScript SDK 自动生成</strong><br>
+      <code>interface PostSpec { title: string; /* required */ }</code>
+    </div>
+    <span class="flow-arrow" style="font-size:1.5em;">&darr;</span>
+    <div class="flow-step" style="border-color: var(--purple); width: 80%; text-align: center;">
+      <strong style="color:var(--purple);">前端调用</strong><br>
+      <code>apiClient.post.draftPost({ postRequest: { post: { spec: { title: "..." } } } })</code>
+    </div>
+    <span class="flow-arrow" style="font-size:1.5em;">&darr;</span>
+    <div class="flow-step" style="border-color: var(--orange); width: 80%; text-align: center;">
+      <strong style="color:var(--orange);">接口测试验证</strong><br>
+      正向：title="测试" &rarr; 200 ✓ &nbsp;|&nbsp; 反向：title="" &rarr; 400 ✓ &nbsp;|&nbsp; 边界：title=1字符 &rarr; 200 ✓
+    </div>
+  </div>
+
+  <div class="callout callout-green" style="margin-top: 24px; text-align:center;">
+    <strong style="font-size:1.1em;">一个 @Schema 注解，驱动了整条链路的一致性。</strong><br>
+    后端定义 &rarr; 文档自动生成 &rarr; SDK 自动生成 &rarr; 前端类型安全 &rarr; 测试用例有据可依<br>
+    这就是现代软件工程中「<strong>单一数据源 Single Source of Truth</strong>」的核心实践。
+  </div>
+</div>
+</div>
+
+<footer>
+  <p>Halo 软件开发全生命周期 &middot; 从需求到上线的完整旅程</p>
+  <p style="margin-top: 8px;">基于 Halo 开源博客系统 &middot; Spring WebFlux + Vue 3 + TypeScript SDK + Postman</p>
+</footer>
+
+<!-- ═══════════ JavaScript ═══════════ -->
+<script>
+// ── 粒子背景 ──
+(function() {
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let w, h, particles = [];
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < 60; i++) {
+    particles.push({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 2 + 0.5,
+      color: ['#64ffda','#bd93f9','#ff79c6','#ffb86c','#8be9fd'][Math.floor(Math.random()*5)]
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    particles.forEach(function(p, i) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > w) p.vx *= -1;
+      if (p.y < 0 || p.y > h) p.vy *= -1;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = 0.4;
+      ctx.fill();
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = p.x - particles[j].x;
+        const dy = p.y - particles[j].y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 150) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = p.color;
+          ctx.globalAlpha = 0.06 * (1 - dist/150);
+          ctx.stroke();
+        }
+      }
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── 滚动进度条 ──
+window.addEventListener('scroll', function() {
+  const scrolled = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+  document.getElementById('progress').style.width = (scrolled * 100) + '%';
+});
+
+// ── 滚动显示动画 ──
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.08 });
+
+document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(function(el) {
+  observer.observe(el);
+});
+
+// ── 侧边导航高亮 ──
+var navLinks = document.querySelectorAll('.side-nav a');
+var stages = document.querySelectorAll('.stage[id]');
+
+window.addEventListener('scroll', function() {
+  var current = '';
+  stages.forEach(function(stage) {
+    if (window.scrollY >= stage.offsetTop - 300) {
+      current = stage.id;
+    }
+  });
+  navLinks.forEach(function(link) {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === '#' + current) {
+      link.classList.add('active');
+    }
+  });
+});
+</script>
+
+</body>
+</html>
