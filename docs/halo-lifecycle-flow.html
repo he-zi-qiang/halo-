@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halo 开发全生命周期流程图</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e1a; --surface: #131a2e; --surface2: #1c2540;
+    --border: #2a3555; --text: #e2e8f0; --text2: #8892b0;
+    --pink: #ff79c6; --blue: #64ffda; --purple: #bd93f9;
+    --orange: #ffb86c; --green: #50fa7b; --red: #ff5555;
+    --yellow: #f1fa8c; --cyan: #8be9fd;
+  }
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+    min-height: 100vh; overflow-x: hidden;
+  }
+  code { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85em; }
+
+  /* ── Header ── */
+  .header {
+    text-align: center; padding: 50px 24px 30px;
+  }
+  .header h1 {
+    font-size: 2.4em; font-weight: 900;
+    background: linear-gradient(135deg, var(--blue), var(--purple), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header p { color: var(--text2); margin-top: 8px; font-size: 1.05em; }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;
+    margin: 10px auto 30px; font-size: 0.85em;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid;
+  }
+
+  /* ── Main Flow Container ── */
+  .flow-container {
+    max-width: 1100px; margin: 0 auto; padding: 0 24px 80px;
+    position: relative;
+  }
+
+  /* ── Central Spine ── */
+  .spine {
+    position: absolute; left: 50%; top: 0; bottom: 0;
+    width: 4px; transform: translateX(-50%);
+    background: linear-gradient(180deg,
+      var(--pink) 0%, var(--pink) 8%,
+      var(--blue) 8%, var(--blue) 32%,
+      var(--purple) 32%, var(--purple) 48%,
+      var(--orange) 48%, var(--orange) 65%,
+      var(--cyan) 65%, var(--cyan) 75%,
+      var(--green) 75%, var(--green) 100%
+    );
+    opacity: 0.4;
+  }
+
+  /* ── Phase Node ── */
+  .phase {
+    position: relative; display: flex; align-items: flex-start;
+    margin-bottom: 20px; min-height: 120px;
+  }
+  .phase.left .phase-content { margin-right: auto; padding-right: 80px; text-align: right; }
+  .phase.right .phase-content { margin-left: auto; padding-left: 80px; text-align: left; }
+  .phase-content { width: 50%; }
+
+  /* ── Node Circle ── */
+  .node-circle {
+    position: absolute; left: 50%; top: 20px;
+    width: 52px; height: 52px; border-radius: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1em; font-weight: 900; z-index: 2;
+    cursor: pointer; transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .node-circle:hover {
+    transform: translateX(-50%) scale(1.15);
+  }
+
+  /* ── Connector arm ── */
+  .arm {
+    position: absolute; top: 44px; height: 3px; z-index: 1;
+  }
+  .phase.left .arm { right: 50%; left: auto; width: calc(50% - 80px + 26px); margin-right: 26px; }
+  .phase.right .arm { left: 50%; width: calc(50% - 80px + 26px); margin-left: 26px; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px 24px;
+    transition: transform 0.3s, box-shadow 0.3s;
+    border-top: 3px solid;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .card h3 { font-size: 1.2em; margin-bottom: 6px; }
+  .card .time { font-size: 0.78em; color: var(--text2); margin-bottom: 8px; }
+  .card .desc { font-size: 0.88em; color: var(--text2); margin-bottom: 10px; }
+  .card .role-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 6px;
+    font-size: 0.72em; font-weight: 700; margin-right: 4px;
+  }
+
+  /* ── Sub-flow (mini flow inside card) ── */
+  .mini-flow {
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+    margin-top: 10px; font-size: 0.8em;
+  }
+  .mini-step {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 6px; white-space: nowrap;
+  }
+  .mini-arrow { color: var(--text2); }
+
+  /* ── Parallel Track ── */
+  .parallel-wrap {
+    position: relative; margin-bottom: 20px;
+  }
+  .parallel-label {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    top: -14px; background: var(--surface2); border: 1px solid var(--border);
+    padding: 2px 16px; border-radius: 10px; font-size: 0.75em;
+    color: var(--cyan); z-index: 5; white-space: nowrap;
+  }
+  .parallel-box {
+    display: flex; gap: 20px; border: 2px dashed var(--border);
+    border-radius: 16px; padding: 30px 16px 16px;
+    position: relative;
+  }
+  .parallel-box .par-card {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px; border-top: 3px solid;
+    transition: transform 0.3s;
+  }
+  .parallel-box .par-card:hover { transform: translateY(-3px); }
+  .parallel-box .par-card h4 { font-size: 1em; margin-bottom: 6px; }
+  .parallel-box .par-card .desc { font-size: 0.82em; color: var(--text2); }
+
+  /* ── Detail Panel (expandable) ── */
+  .detail-panel {
+    max-height: 0; overflow: hidden; transition: max-height 0.5s ease;
+    margin-top: 0;
+  }
+  .detail-panel.open { max-height: 800px; margin-top: 10px; }
+  .detail-inner {
+    background: var(--surface2); border-radius: 10px; padding: 14px 18px;
+    font-size: 0.85em; color: var(--text2); border: 1px solid var(--border);
+  }
+  .detail-inner ul { padding-left: 18px; }
+  .detail-inner li { margin-bottom: 4px; }
+  .detail-inner strong { color: var(--text); }
+  .expand-btn {
+    background: none; border: 1px solid var(--border); color: var(--text2);
+    padding: 3px 12px; border-radius: 6px; font-size: 0.78em; cursor: pointer;
+    margin-top: 8px; transition: all 0.2s;
+  }
+  .expand-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* ── Big Arrow Between Sections ── */
+  .big-arrow {
+    text-align: center; font-size: 2em; color: var(--text2); opacity: 0.5;
+    margin: 10px 0;
+    position: relative; z-index: 3;
+  }
+
+  /* ── Summary Flow at Bottom ── */
+  .summary-flow {
+    max-width: 1000px; margin: 40px auto; padding: 0 24px;
+  }
+  .summary-flow h2 {
+    text-align: center; font-size: 1.6em; font-weight: 800; margin-bottom: 24px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .linear-flow {
+    display: flex; align-items: stretch; gap: 0; overflow-x: auto;
+    padding: 20px 0;
+  }
+  .lf-node {
+    flex: 1; min-width: 110px; text-align: center; position: relative;
+    padding: 0 6px;
+  }
+  .lf-circle {
+    width: 50px; height: 50px; border-radius: 50%; margin: 0 auto 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 0.95em; position: relative; z-index: 2;
+    transition: transform 0.3s;
+  }
+  .lf-circle:hover { transform: scale(1.2); }
+  .lf-label { font-size: 0.82em; font-weight: 700; margin-bottom: 4px; }
+  .lf-sub { font-size: 0.7em; color: var(--text2); }
+  .lf-connector {
+    position: absolute; top: 25px; left: calc(50% + 25px);
+    width: calc(100% - 50px); height: 3px; z-index: 1;
+  }
+  .lf-node:last-child .lf-connector { display: none; }
+
+  /* ── API Testing Thread (horizontal bar below summary) ── */
+  .api-thread {
+    max-width: 1000px; margin: 0 auto 40px; padding: 0 24px;
+  }
+  .thread-bar {
+    background: rgba(255,184,108,0.08); border: 1px solid rgba(255,184,108,0.25);
+    border-radius: 12px; padding: 16px 20px; position: relative;
+  }
+  .thread-bar h4 { color: var(--orange); font-size: 0.9em; margin-bottom: 10px; text-align: center; }
+  .thread-stages {
+    display: flex; justify-content: space-between; font-size: 0.75em;
+    color: var(--text2); gap: 4px;
+  }
+  .thread-stage {
+    flex: 1; text-align: center; padding: 6px 4px;
+    border-radius: 6px; background: rgba(255,184,108,0.08);
+    border: 1px solid rgba(255,184,108,0.15);
+    transition: all 0.2s;
+  }
+  .thread-stage:hover {
+    background: rgba(255,184,108,0.15);
+    color: var(--orange);
+  }
+  .thread-stage strong { display: block; color: var(--orange); font-size: 1.05em; margin-bottom: 2px; }
+
+  /* ── Field Journey ── */
+  .field-journey {
+    max-width: 800px; margin: 40px auto 60px; padding: 0 24px;
+  }
+  .field-journey h2 {
+    text-align: center; font-size: 1.4em; margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--green), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .journey-step {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 4px;
+    position: relative;
+  }
+  .journey-step::before {
+    content: ''; position: absolute; left: 19px; top: 40px;
+    width: 2px; height: calc(100% - 10px);
+    background: var(--border);
+  }
+  .journey-step:last-child::before { display: none; }
+  .j-dot {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9em; z-index: 2;
+  }
+  .j-content {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px; flex: 1;
+    transition: transform 0.2s;
+  }
+  .j-content:hover { transform: translateX(4px); }
+  .j-content .j-title { font-weight: 700; font-size: 0.9em; margin-bottom: 2px; }
+  .j-content code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-size: 0.8em; }
+  .j-content .j-desc { font-size: 0.8em; color: var(--text2); margin-top: 4px; }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center; padding: 40px 24px; color: var(--text2); font-size: 0.82em;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .phase.left .phase-content,
+    .phase.right .phase-content { width: 100%; padding: 0 0 0 70px; text-align: left; }
+    .spine { left: 35px; }
+    .node-circle { left: 35px; }
+    .arm { display: none; }
+    .parallel-box { flex-direction: column; }
+    .linear-flow { flex-wrap: wrap; }
+  }
+
+  /* ── Animation ── */
+  .fade-in {
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Halo 开发全生命周期流程图</h1>
+  <p>以「创建文章」功能为主线，用流程线清晰展示从需求到上线每一步的输入、输出和角色</p>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="border-color:var(--pink); background:rgba(255,121,198,0.3);"></div> 产品</div>
+  <div class="legend-item"><div class="legend-dot" style="border-color:var(--blue); background:rgba(100,255,218,0.3);"></div> 后端</div>
+  <div class="legend-item"><div class="legend-dot" style="border-color:var(--purple); background:rgba(189,147,249,0.3);"></div> 前端</div>
+  <div class="legend-item"><div class="legend-dot" style="border-color:var(--orange); background:rgba(255,184,108,0.3);"></div> 测试</div>
+  <div class="legend-item"><div class="legend-dot" style="border-color:var(--green); background:rgba(80,250,123,0.3);"></div> 运维</div>
+  <div class="legend-item" style="margin-left:12px; padding-left:12px; border-left:1px solid var(--border);">
+    <span style="font-size:0.85em; color:var(--text2);">点击节点查看详情</span>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- MAIN TIMELINE FLOW                           -->
+<!-- ============================================ -->
+<div class="flow-container">
+  <div class="spine"></div>
+
+  <!-- ── Phase 1: 需求分析 ── -->
+  <div class="phase left fade-in">
+    <div class="phase-content">
+      <div class="card" style="border-top-color: var(--pink);">
+        <span class="role-tag" style="background:rgba(255,121,198,0.15); color:var(--pink);">PM 产品经理</span>
+        <span class="role-tag" style="background:rgba(255,184,108,0.15); color:var(--orange);">测试参与评审</span>
+        <h3 style="color: var(--pink);">需求分析</h3>
+        <div class="time">Sprint 第1天</div>
+        <div class="desc">产品提出用户故事，所有角色参与需求评审</div>
+        <div class="mini-flow">
+          <span class="mini-step">用户故事</span>
+          <span class="mini-arrow">&rarr;</span>
+          <span class="mini-step">需求评审</span>
+          <span class="mini-arrow">&rarr;</span>
+          <span class="mini-step" style="color:var(--pink);">需求文档 + 原型图</span>
+        </div>
+        <button class="expand-btn" onclick="toggle(this)">展开详情 &darr;</button>
+        <div class="detail-panel">
+          <div class="detail-inner">
+            <strong>输入：</strong>业务需求（用户能创建/发布/回收/评论文章）<br>
+            <strong>输出：</strong>需求文档 + 原型图<br>
+            <strong>测试左移：</strong>
+            <ul>
+              <li>标题有无长度限制？空标题能否提交？</li>
+              <li>未登录能否创建文章？权限如何控制？</li>
+              <li>草稿 &rarr; 发布 &rarr; 回收 &rarr; 再发布，状态流转是否合理？</li>
+            </ul>
+            <strong>关键点：</strong>测试工程师此时就参与，提前识别需求漏洞
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="arm" style="background: var(--pink);"></div>
+    <div class="node-circle" style="background:rgba(255,121,198,0.2); color:var(--pink); border:3px solid var(--pink); box-shadow:0 0 15px rgba(255,121,198,0.4);" onclick="togglePhase(this)">01</div>
+  </div>
+
+  <div class="big-arrow">&darr;</div>
+
+  <!-- ── Phase 2: 接口设计 ── -->
+  <div class="phase right fade-in">
+    <div class="phase-content">
+      <div class="card" style="border-top-color: var(--blue);">
+        <span class="role-tag" style="background:rgba(100,255,218,0.15); color:var(--blue);">架构师</span>
+        <span class="role-tag" style="background:rgba(255,184,108,0.15); color:var(--orange);">测试写用例</span>
+        <h3 style="color: var(--blue);">接口设计（API 契约）</h3>
+        <div class="time">Sprint 第2-3天</div>
+        <div class="desc">定义 RESTful API 规范，这是前后端协作的「契约」</div>
+        <div class="mini-flow">
+          <span class="mini-step">需求文档</span>
+          <span class="mini-arrow">&rarr;</span>
+          <span class="mini-step">定义 URL / 方法 / 字段</span>
+          <span class="mini-arrow">&rarr;</span>
+          <span class="mini-step" style="color:var(--blue);">接口文档（OpenAPI）</span>
+        </div>
+        <button class="expand-btn" onclick="toggle(this)">展开详情 &darr;</button>
+        <div class="detail-panel">
+          <div class="detail-inner">
+            <strong>输入：</strong>需求文档<br>
+            <strong>输出：</strong>OpenAPI 接口文档（URL + 请求格式 + 响应格式）<br><br>
+            <strong>Halo 文章管理接口清单：</strong>
+            <ul>
+              <li><code>GET /posts</code> &mdash; 获取文章列表</li>
+              <li><code>POST /posts</code> &mdash; 创建文章草稿</li>
+              <li><code>PUT /posts/{name}</code> &mdash; 更新文章</li>
+              <li><code>PUT /posts/{name}/publish</code> &mdash; 发布</li>
+              <li><code>PUT /posts/{name}/unpublish</code> &mdash; 取消发布</li>
+              <li><code>PUT /posts/{name}/recycle</code> &mdash; 回收</li>
+            </ul>
+            <strong>测试同步：</strong>根据接口文档编写正向/反向/边界测试用例 + Postman Collection 骨架<br>
+            <strong>关键输出：</strong>两种文档 &mdash; OpenAPI 自动文档（给 SDK 生成用）+ 测试用接口文档（给人看）
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="arm" style="background: var(--blue);"></div>
+    <div class="node-circle" style="background:rgba(100,255,218,0.2); color:var(--blue); border:3px solid var(--blue); box-shadow:0 0 15px rgba(100,255,218,0.4);" onclick="togglePhase(this)">02</div>
+  </div>
+
+  <div class="big-arrow">&darr;</div>
+
+  <!-- ── Phase 3+4: 并行开发 ── -->
+  <div class="parallel-wrap fade-in">
+    <div class="parallel-label">并行开发阶段 &mdash; 前后端同时推进（基于接口契约）</div>
+    <div class="parallel-box">
+      <!-- 后端 -->
+      <div class="par-card" style="border-top-color: var(--blue);">
+        <span class="role-tag" style="background:rgba(100,255,218,0.15); color:var(--blue);">后端</span>
+        <h4 style="color: var(--blue);">03 后端开发</h4>
+        <div class="time" style="font-size:0.78em; color:var(--text2);">Sprint 第3-7天</div>
+        <div class="desc">将接口设计落地为代码，Halo 包含三层：</div>
+        <div class="mini-flow" style="flex-direction:column; align-items:flex-start; gap:2px;">
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span class="mini-step" style="border-color:var(--blue);">路由定义</span>
+            <span class="mini-arrow">&rarr;</span>
+            <span style="font-size:0.75em; color:var(--text2);">PostEndpoint.java</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span class="mini-step" style="border-color:var(--cyan);">数据模型</span>
+            <span class="mini-arrow">&rarr;</span>
+            <span style="font-size:0.75em; color:var(--text2);">Post.java @Schema 注解</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span class="mini-step" style="border-color:var(--green);">业务逻辑</span>
+            <span class="mini-arrow">&rarr;</span>
+            <span style="font-size:0.75em; color:var(--text2);">PostServiceImpl.java</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px; margin-top:4px;">
+            <span class="mini-step" style="border-color:var(--purple);">安全过滤</span>
+            <span class="mini-arrow">&rarr;</span>
+            <span style="font-size:0.75em; color:var(--text2);">SecurityWebFilter（横切）</span>
+          </div>
+        </div>
+        <button class="expand-btn" onclick="toggle(this)">展开详情 &darr;</button>
+        <div class="detail-panel">
+          <div class="detail-inner">
+            <strong>输入：</strong>接口文档（OpenAPI 规范）<br>
+            <strong>输出：</strong>可运行的 API 服务 + 自动生成的 OpenAPI JSON<br><br>
+            <strong>三层代码结构：</strong>
+            <ul>
+              <li><strong>路由层</strong> PostEndpoint.java &mdash; <code>.GET("/posts", this::listPost)</code> 链式定义</li>
+              <li><strong>模型层</strong> Post.java &mdash; <code>@Schema(required, minLength=1)</code> 同时驱动校验+文档+SDK</li>
+              <li><strong>业务层</strong> PostServiceImpl.java &mdash; 实际的创建/发布/回收逻辑</li>
+            </ul>
+            <strong>横切机制：</strong>SecurityWebFilter 在所有请求前检查认证（JWT / Basic Auth）<br>
+            <strong>关键模式：</strong><code>operationId("DraftPost")</code> &rarr; SDK 函数名 <code>apiClient.post.draftPost()</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- 前端 -->
+      <div class="par-card" style="border-top-color: var(--purple);">
+        <span class="role-tag" style="background:rgba(189,147,249,0.15); color:var(--purple);">前端</span>
+        <h4 style="color: var(--purple);">04 前端开发</h4>
+        <div class="time" style="font-size:0.78em; color:var(--text2);">Sprint 第4-8天（与后端并行）</div>
+        <div class="desc">基于 TypeScript SDK 开发，不用手写 HTTP 请求：</div>
+        <div class="mini-flow" style="flex-direction:column; align-items:flex-start; gap:2px;">
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span class="mini-step" style="border-color:var(--blue);">@Schema 注解</span>
+            <span class="mini-arrow">&rarr;</span>
+            <span class="mini-step" style="border-color:var(--cyan);">OpenAPI JSON</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span class="mini-arrow" style="transform:rotate(90deg); display:inline-block;">&darr;</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span class="mini-step" style="border-color:var(--purple);">TS SDK 自动生成</span>
+            <span class="mini-arrow">&rarr;</span>
+            <span class="mini-step" style="border-color:var(--green);">Vue 页面调用</span>
+          </div>
+        </div>
+        <button class="expand-btn" onclick="toggle(this)">展开详情 &darr;</button>
+        <div class="detail-panel">
+          <div class="detail-inner">
+            <strong>输入：</strong>接口文档 + 自动生成的 TypeScript SDK<br>
+            <strong>输出：</strong>前端页面（PostList.vue, PostEditor.vue）<br><br>
+            <strong>前后端并行的前提：</strong>接口契约已在 Phase 2 确定<br>
+            <ul>
+              <li>后端未就绪 &rarr; 前端用 Mock 数据开发</li>
+              <li>后端完成一个接口 &rarr; 前端切换到真实 API</li>
+            </ul>
+            <strong>Halo 独特之处：</strong>SDK 自动生成，参数类型、响应类型全部自动推断<br>
+            <code>apiClient.post.draftPost({ postRequest: {...} })</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- 测试 -->
+      <div class="par-card" style="border-top-color: var(--orange);">
+        <span class="role-tag" style="background:rgba(255,184,108,0.15); color:var(--orange);">测试</span>
+        <h4 style="color: var(--orange);">05 接口测试</h4>
+        <div class="time" style="font-size:0.78em; color:var(--text2);">第2天起写用例，第4天起执行</div>
+        <div class="desc">后端每完成一个接口，测试立即验证：</div>
+        <div class="mini-flow" style="flex-direction:column; align-items:flex-start; gap:2px;">
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span class="mini-step" style="color:var(--green);">正向测试</span>
+            <span style="font-size:0.75em; color:var(--text2);">完整参数 &rarr; 200</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span class="mini-step" style="color:var(--red);">反向测试</span>
+            <span style="font-size:0.75em; color:var(--text2);">空标题 &rarr; 400</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span class="mini-step" style="color:var(--yellow);">边界测试</span>
+            <span style="font-size:0.75em; color:var(--text2);">1字符标题 &rarr; ?</span>
+          </div>
+        </div>
+        <button class="expand-btn" onclick="toggle(this)">展开详情 &darr;</button>
+        <div class="detail-panel">
+          <div class="detail-inner">
+            <strong>4层测试覆盖：</strong>
+            <ul>
+              <li><strong>路由层</strong> &mdash; URL 能否到达处理函数</li>
+              <li><strong>认证层</strong> &mdash; 未认证请求是否拦截 &rarr; 401</li>
+              <li><strong>业务层</strong> &mdash; 业务逻辑是否正确</li>
+              <li><strong>数据层</strong> &mdash; 数据库是否正确读写</li>
+            </ul>
+            <strong>Postman 5步链式测试：</strong><br>
+            登录 &rarr; 创建草稿 &rarr; 查询验证 &rarr; 发布文章 &rarr; 回收文章<br>
+            接口间用<strong>环境变量</strong>传递 <code>metadata.name</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="big-arrow">&darr;</div>
+
+  <!-- ── Phase 6: 联调 ── -->
+  <div class="phase left fade-in">
+    <div class="phase-content">
+      <div class="card" style="border-top-color: var(--cyan);">
+        <span class="role-tag" style="background:rgba(100,255,218,0.15); color:var(--blue);">后端</span>
+        <span class="role-tag" style="background:rgba(189,147,249,0.15); color:var(--purple);">前端</span>
+        <span class="role-tag" style="background:rgba(255,184,108,0.15); color:var(--orange);">测试</span>
+        <h3 style="color: var(--cyan);">联调集成</h3>
+        <div class="time">Sprint 第8-10天（与测试尾部重叠）</div>
+        <div class="desc">前后端「合体」&mdash; 确保页面与接口完美配合</div>
+        <div class="mini-flow">
+          <span class="mini-step">前端页面</span>
+          <span class="mini-arrow">+</span>
+          <span class="mini-step">后端 API</span>
+          <span class="mini-arrow">&rarr;</span>
+          <span class="mini-step" style="color:var(--cyan);">端到端验证</span>
+        </div>
+        <button class="expand-btn" onclick="toggle(this)">展开详情 &darr;</button>
+        <div class="detail-panel">
+          <div class="detail-inner">
+            <strong>常见问题：</strong>
+            <ul>
+              <li>字段名不一致（前端 postTitle vs 后端 title）</li>
+              <li>数据类型不匹配（string vs number）</li>
+              <li>认证方式差异（Session vs Basic Auth）</li>
+              <li>分页参数不一致（page 从 0 还是 1 开始）</li>
+            </ul>
+            <strong>Halo 优势：</strong>TypeScript SDK 从 OpenAPI 自动生成，字段名和类型<strong>不可能出错</strong><br>
+            &rarr; 这就是「Single Source of Truth」的力量<br><br>
+            <strong>联调清单：</strong>
+            <ul>
+              <li>PostEditor 创建文章 &rarr; PostList 显示</li>
+              <li>点击发布 &rarr; 状态变为「已发布」</li>
+              <li>点击回收 &rarr; 移入回收站</li>
+              <li>未登录 &rarr; 重定向登录页</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="arm" style="background: var(--cyan);"></div>
+    <div class="node-circle" style="background:rgba(139,233,253,0.2); color:var(--cyan); border:3px solid var(--cyan); box-shadow:0 0 15px rgba(139,233,253,0.4);" onclick="togglePhase(this)">06</div>
+  </div>
+
+  <div class="big-arrow">&darr;</div>
+
+  <!-- ── Phase 7: 部署上线 ── -->
+  <div class="phase right fade-in">
+    <div class="phase-content">
+      <div class="card" style="border-top-color: var(--green);">
+        <span class="role-tag" style="background:rgba(80,250,123,0.15); color:var(--green);">运维</span>
+        <span class="role-tag" style="background:rgba(255,184,108,0.15); color:var(--orange);">自动化测试</span>
+        <h3 style="color: var(--green);">部署上线（CI/CD）</h3>
+        <div class="time">Sprint 第11天</div>
+        <div class="desc">通过流水线自动部署，接口测试以自动化回归形式运行</div>
+        <div class="mini-flow">
+          <span class="mini-step">编译</span>
+          <span class="mini-arrow">&rarr;</span>
+          <span class="mini-step">单元测试</span>
+          <span class="mini-arrow">&rarr;</span>
+          <span class="mini-step">部署 Staging</span>
+          <span class="mini-arrow">&rarr;</span>
+          <span class="mini-step" style="color:var(--orange);">接口回归测试</span>
+          <span class="mini-arrow">&rarr;</span>
+          <span class="mini-step" style="color:var(--green);">部署 Production</span>
+        </div>
+        <button class="expand-btn" onclick="toggle(this)">展开详情 &darr;</button>
+        <div class="detail-panel">
+          <div class="detail-inner">
+            <strong>CI/CD 6阶段流水线：</strong>
+            <ul>
+              <li><strong>Stage 1</strong> gradle build &mdash; 编译（30s）</li>
+              <li><strong>Stage 2</strong> gradle test &mdash; 单元测试（2min）</li>
+              <li><strong>Stage 3</strong> docker deploy staging &mdash; 部署测试环境（3min）</li>
+              <li><strong>Stage 4</strong> newman run &mdash; 接口回归测试（5min）</li>
+              <li><strong>Stage 5</strong> E2E 冒烟测试（10min）</li>
+              <li><strong>Stage 6</strong> docker deploy production &mdash; 全部通过后上线</li>
+            </ul>
+            <strong>Newman：</strong>Postman 的命令行工具，在 CI/CD 中自动运行测试集<br>
+            <strong>回归价值：</strong>如果有人不小心改了路由路径，接口测试会立即失败，阻止合并
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="arm" style="background: var(--green);"></div>
+    <div class="node-circle" style="background:rgba(80,250,123,0.2); color:var(--green); border:3px solid var(--green); box-shadow:0 0 15px rgba(80,250,123,0.4);" onclick="togglePhase(this)">07</div>
+  </div>
+
+  <div class="big-arrow">&darr;</div>
+
+  <!-- ── Phase 8: 运维监控 ── -->
+  <div class="phase left fade-in">
+    <div class="phase-content">
+      <div class="card" style="border-top-color: var(--green);">
+        <span class="role-tag" style="background:rgba(80,250,123,0.15); color:var(--green);">运维</span>
+        <h3 style="color: var(--green);">运维监控</h3>
+        <div class="time">上线后持续运行</div>
+        <div class="desc">接口健康检查 &mdash; 每5分钟自动检测核心接口可用性</div>
+        <div class="mini-flow">
+          <span class="mini-step">GET /posts &lt;500ms</span>
+          <span class="mini-arrow">+</span>
+          <span class="mini-step">GET /health &rarr; UP</span>
+          <span class="mini-arrow">&rarr;</span>
+          <span class="mini-step" style="color:var(--red);">失败 &rarr; 告警</span>
+        </div>
+        <button class="expand-btn" onclick="toggle(this)">展开详情 &darr;</button>
+        <div class="detail-panel">
+          <div class="detail-inner">
+            <strong>只用 GET 读操作做健康检查</strong>，绝不用 POST/PUT/DELETE（会产生脏数据）<br><br>
+            <strong>每5分钟检查：</strong>
+            <ul>
+              <li><code>GET /api/v1alpha1/posts</code> &rarr; 响应 &lt; 500ms</li>
+              <li><code>GET /api/v1alpha1/categories</code> &rarr; 响应 &lt; 300ms</li>
+              <li><code>GET /actuator/health</code> &rarr; status: UP</li>
+            </ul>
+            <strong>失败时：</strong>发送告警（邮件/Slack/钉钉），记录故障详情，触发排查流程
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="arm" style="background: var(--green);"></div>
+    <div class="node-circle" style="background:rgba(80,250,123,0.2); color:var(--green); border:3px solid var(--green); box-shadow:0 0 15px rgba(80,250,123,0.4);" onclick="togglePhase(this)">08</div>
+  </div>
+
+</div>
+
+<!-- ============================================ -->
+<!-- SUMMARY: LINEAR FLOW                         -->
+<!-- ============================================ -->
+<div class="summary-flow fade-in">
+  <h2>一图看清：主线流程</h2>
+  <div class="linear-flow">
+    <div class="lf-node">
+      <div class="lf-circle" style="background:rgba(255,121,198,0.2); color:var(--pink); border:2px solid var(--pink);">01</div>
+      <div class="lf-label" style="color:var(--pink);">需求分析</div>
+      <div class="lf-sub">第1天</div>
+      <div class="lf-connector" style="background:linear-gradient(90deg, var(--pink), var(--blue));"></div>
+    </div>
+    <div class="lf-node">
+      <div class="lf-circle" style="background:rgba(100,255,218,0.2); color:var(--blue); border:2px solid var(--blue);">02</div>
+      <div class="lf-label" style="color:var(--blue);">接口设计</div>
+      <div class="lf-sub">第2-3天</div>
+      <div class="lf-connector" style="background:var(--blue);"></div>
+    </div>
+    <div class="lf-node">
+      <div class="lf-circle" style="background:rgba(100,255,218,0.2); color:var(--blue); border:2px solid var(--blue);">03</div>
+      <div class="lf-label" style="color:var(--blue);">后端开发</div>
+      <div class="lf-sub">第3-7天</div>
+      <div class="lf-connector" style="background:linear-gradient(90deg, var(--blue), var(--cyan));"></div>
+    </div>
+    <div class="lf-node">
+      <div class="lf-circle" style="background:rgba(189,147,249,0.2); color:var(--purple); border:2px solid var(--purple);">04</div>
+      <div class="lf-label" style="color:var(--purple);">前端开发</div>
+      <div class="lf-sub">第4-8天</div>
+      <div class="lf-connector" style="background:linear-gradient(90deg, var(--purple), var(--cyan));"></div>
+    </div>
+    <div class="lf-node">
+      <div class="lf-circle" style="background:rgba(255,184,108,0.2); color:var(--orange); border:2px solid var(--orange);">05</div>
+      <div class="lf-label" style="color:var(--orange);">接口测试</div>
+      <div class="lf-sub">第2-9天</div>
+      <div class="lf-connector" style="background:linear-gradient(90deg, var(--orange), var(--cyan));"></div>
+    </div>
+    <div class="lf-node">
+      <div class="lf-circle" style="background:rgba(139,233,253,0.2); color:var(--cyan); border:2px solid var(--cyan);">06</div>
+      <div class="lf-label" style="color:var(--cyan);">联调集成</div>
+      <div class="lf-sub">第8-10天</div>
+      <div class="lf-connector" style="background:linear-gradient(90deg, var(--cyan), var(--green));"></div>
+    </div>
+    <div class="lf-node">
+      <div class="lf-circle" style="background:rgba(80,250,123,0.2); color:var(--green); border:2px solid var(--green);">07</div>
+      <div class="lf-label" style="color:var(--green);">部署上线</div>
+      <div class="lf-sub">第11天</div>
+      <div class="lf-connector" style="background:var(--green);"></div>
+    </div>
+    <div class="lf-node">
+      <div class="lf-circle" style="background:rgba(80,250,123,0.2); color:var(--green); border:2px solid var(--green);">08</div>
+      <div class="lf-label" style="color:var(--green);">运维监控</div>
+      <div class="lf-sub">持续</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- API TESTING THREAD                           -->
+<!-- ============================================ -->
+<div class="api-thread fade-in">
+  <div class="thread-bar">
+    <h4>接口测试贯穿整个生命周期（不同阶段的形态）</h4>
+    <div class="thread-stages">
+      <div class="thread-stage">
+        <strong>需求</strong>
+        用例设计
+      </div>
+      <div class="thread-stage">
+        <strong>设计</strong>
+        文档评审
+      </div>
+      <div class="thread-stage">
+        <strong>后端</strong>
+        Postman 手动
+      </div>
+      <div class="thread-stage">
+        <strong>前端</strong>
+        Mock + 联调
+      </div>
+      <div class="thread-stage">
+        <strong>联调</strong>
+        端到端验证
+      </div>
+      <div class="thread-stage">
+        <strong>部署</strong>
+        CI/CD 回归
+      </div>
+      <div class="thread-stage">
+        <strong>运维</strong>
+        健康检查
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- FIELD JOURNEY: title 字段穿越之旅             -->
+<!-- ============================================ -->
+<div class="field-journey fade-in">
+  <h2>一个字段如何贯穿整条链路</h2>
+  <p style="text-align:center; color:var(--text2); margin-bottom:20px; font-size:0.9em;">以「创建文章」的 <code>title</code> 字段为例</p>
+
+  <div class="journey-step">
+    <div class="j-dot" style="background:rgba(100,255,218,0.2); color:var(--blue); border:2px solid var(--blue);">1</div>
+    <div class="j-content" style="border-left:3px solid var(--blue);">
+      <div class="j-title" style="color:var(--blue);">后端代码定义</div>
+      <code>@Schema(requiredMode = REQUIRED, minLength = 1) String title</code>
+      <div class="j-desc">Java 注解同时定义了：校验规则 + 文档信息 + SDK 类型</div>
+    </div>
+  </div>
+
+  <div class="journey-step">
+    <div class="j-dot" style="background:rgba(139,233,253,0.2); color:var(--cyan); border:2px solid var(--cyan);">2</div>
+    <div class="j-content" style="border-left:3px solid var(--cyan);">
+      <div class="j-title" style="color:var(--cyan);">OpenAPI 文档自动生成</div>
+      <code>title: { type: string, required: true, minLength: 1 }</code>
+      <div class="j-desc">SpringDoc 编译时从注解提取，生成 JSON 规范</div>
+    </div>
+  </div>
+
+  <div class="journey-step">
+    <div class="j-dot" style="background:rgba(189,147,249,0.2); color:var(--purple); border:2px solid var(--purple);">3</div>
+    <div class="j-content" style="border-left:3px solid var(--purple);">
+      <div class="j-title" style="color:var(--purple);">TypeScript SDK 自动生成</div>
+      <code>interface PostSpec { title: string; /* required */ }</code>
+      <div class="j-desc">openapi-generator 从 OpenAPI JSON 生成类型安全的 SDK</div>
+    </div>
+  </div>
+
+  <div class="journey-step">
+    <div class="j-dot" style="background:rgba(189,147,249,0.2); color:var(--purple); border:2px solid var(--purple);">4</div>
+    <div class="j-content" style="border-left:3px solid var(--purple);">
+      <div class="j-title" style="color:var(--purple);">前端调用</div>
+      <code>apiClient.post.draftPost({ postRequest: { post: { spec: { title: "..." } } } })</code>
+      <div class="j-desc">IDE 自动提示 title 是必填，类型错误编译时就报错</div>
+    </div>
+  </div>
+
+  <div class="journey-step">
+    <div class="j-dot" style="background:rgba(255,184,108,0.2); color:var(--orange); border:2px solid var(--orange);">5</div>
+    <div class="j-content" style="border-left:3px solid var(--orange);">
+      <div class="j-title" style="color:var(--orange);">接口测试验证</div>
+      <div class="j-desc">
+        正向：<code>title="测试文章"</code> &rarr; 200 |
+        反向：<code>title=""</code> &rarr; 400 |
+        边界：<code>title="X"</code>(1字符) &rarr; 200
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center; margin: 0 auto 60px; max-width:600px; padding:0 24px;">
+  <div style="background:rgba(80,250,123,0.08); border:1px solid rgba(80,250,123,0.25); border-radius:12px; padding:16px 20px;">
+    <strong style="color:var(--green); font-size:1.05em;">一个 @Schema 注解，驱动了整条链路的一致性</strong><br>
+    <span style="color:var(--text2); font-size:0.88em;">
+      后端定义 &rarr; 文档自动生成 &rarr; SDK 自动生成 &rarr; 前端类型安全 &rarr; 测试有据可依<br>
+      这就是「<strong style="color:var(--text);">Single Source of Truth</strong>」
+    </span>
+  </div>
+</div>
+
+<footer>
+  <p>Halo 开发全生命周期流程图 &middot; 基于 Halo 开源博客系统</p>
+</footer>
+
+<script>
+// ── Toggle detail panels ──
+function toggle(btn) {
+  const panel = btn.nextElementSibling;
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open');
+  btn.textContent = isOpen ? '展开详情 \u2193' : '收起详情 \u2191';
+}
+
+function togglePhase(circle) {
+  const phase = circle.closest('.phase') || circle.closest('.parallel-wrap');
+  if (!phase) return;
+  const btn = phase.querySelector('.expand-btn');
+  if (btn) toggle(btn);
+}
+
+// ── Scroll reveal ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) e.target.classList.add('visible');
+  });
+}, { threshold: 0.15 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

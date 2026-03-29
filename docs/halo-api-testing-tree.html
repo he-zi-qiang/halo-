@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Halo 接口测试知识树 · 从源码到测试</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0e1a; --surface: #131a2e; --surface2: #1c2540; --surface3: #243050;
+    --border: #2a3555; --text: #e2e8f0; --text2: #8892b0;
+    --blue: #64ffda; --purple: #bd93f9; --pink: #ff79c6;
+    --orange: #ffb86c; --green: #50fa7b; --red: #ff5555;
+    --yellow: #f1fa8c; --cyan: #8be9fd;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.8;
+    overflow-x: hidden;
+  }
+  code, pre { font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace; }
+
+  /* ═══ 粒子背景 ═══ */
+  #particles {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+  }
+
+  /* ═══ 滚动进度条 ═══ */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 3px; z-index: 1000;
+    background: linear-gradient(90deg, var(--blue), var(--purple), var(--pink));
+    transition: width 0.15s;
+  }
+
+  /* ═══ 滚动动画 ═══ */
+  .reveal {
+    opacity: 0; transform: translateY(40px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ═══ 布局 ═══ */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* ═══ Hero ═══ */
+  .hero {
+    text-align: center; padding: 100px 24px 60px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(100,255,218,0.06) 0%, transparent 70%);
+    position: relative; z-index: 1;
+  }
+  .hero h1 {
+    font-size: 2.8em; font-weight: 900; margin-bottom: 16px;
+    background: linear-gradient(135deg, var(--blue), var(--purple), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero .subtitle { color: var(--text2); font-size: 1.15em; max-width: 700px; margin: 0 auto 24px; }
+  .hero .badge {
+    display: inline-block; background: var(--surface2); color: var(--blue);
+    padding: 6px 18px; border-radius: 20px; font-size: 0.85em;
+    border: 1px solid rgba(100,255,218,0.2);
+  }
+
+  /* ═══ 侧边导航 ═══ */
+  .side-nav {
+    position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+    z-index: 100; display: flex; flex-direction: column; gap: 8px;
+  }
+  @media (max-width: 900px) { .side-nav { display: none; } }
+  .side-nav a {
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--text2);
+    transition: all 0.3s; position: relative; display: block;
+  }
+  .side-nav a:hover, .side-nav a.active {
+    border-color: var(--blue); background: var(--blue);
+    box-shadow: 0 0 10px var(--blue);
+  }
+  .side-nav a .tip {
+    position: absolute; right: 22px; top: 50%; transform: translateY(-50%);
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 4px 12px; border-radius: 6px; font-size: 0.75em;
+    white-space: nowrap; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s; color: var(--text);
+  }
+  .side-nav a:hover .tip { opacity: 1; }
+
+  /* ═══ 开发流程横条 ═══ */
+  .flow-bar {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; padding: 40px 24px 20px; position: relative; z-index: 1;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    display: flex; align-items: center; gap: 0;
+    cursor: pointer; transition: transform 0.2s;
+  }
+  .flow-step:hover { transform: scale(1.05); }
+  .flow-step .step-box {
+    padding: 10px 22px; border-radius: 10px; font-weight: 700;
+    font-size: 0.9em; white-space: nowrap;
+    border: 1px solid var(--border); background: var(--surface);
+    transition: all 0.3s;
+  }
+  .flow-step .step-box.active {
+    border-color: var(--blue); box-shadow: 0 0 15px rgba(100,255,218,0.2);
+  }
+  .flow-arrow {
+    color: var(--text2); font-size: 1.2em; padding: 0 8px;
+    display: flex; align-items: center;
+  }
+
+  /* ═══ 阶段区域 ═══ */
+  .stage {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 60px auto;
+    padding: 0 24px;
+  }
+  .stage-header {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+  }
+  .stage-num {
+    width: 52px; height: 52px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 1.3em; font-weight: 900; flex-shrink: 0;
+    box-shadow: 0 0 20px currentColor;
+  }
+  .stage-header h2 { font-size: 1.7em; font-weight: 800; }
+
+  .stage-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .stage-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  }
+
+  /* ═══ 知识树 ═══ */
+  .tree { margin: 20px 0; }
+  .tree-root {
+    position: relative; padding-left: 0;
+  }
+  .tree-node {
+    position: relative; padding-left: 28px; margin: 6px 0;
+  }
+  .tree-node::before {
+    content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+    width: 2px; background: var(--border);
+  }
+  .tree-node:last-child::before { height: 16px; }
+  .tree-node::after {
+    content: ''; position: absolute; left: 8px; top: 14px;
+    width: 14px; height: 2px; background: var(--border);
+  }
+  .tree-node .tree-node { margin-left: 4px; }
+
+  .node-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 8px;
+    font-size: 0.88em; line-height: 1.5;
+    background: var(--surface2); border: 1px solid var(--border);
+    transition: all 0.3s; cursor: default;
+    max-width: 100%;
+  }
+  .node-label:hover {
+    border-color: var(--blue);
+    box-shadow: 0 2px 12px rgba(100,255,218,0.1);
+  }
+
+  /* 优先级标记 */
+  .p1 .node-label { border-left: 3px solid var(--red); }
+  .p2 .node-label { border-left: 3px solid var(--orange); }
+  .p3 .node-label { border-left: 3px solid var(--cyan); }
+
+  .priority-tag {
+    font-size: 0.7em; font-weight: 700; padding: 1px 7px;
+    border-radius: 4px; flex-shrink: 0; letter-spacing: 0.5px;
+  }
+  .priority-tag.p1 { background: rgba(255,85,85,0.15); color: var(--red); }
+  .priority-tag.p2 { background: rgba(255,184,108,0.15); color: var(--orange); }
+  .priority-tag.p3 { background: rgba(139,233,253,0.15); color: var(--cyan); }
+
+  /* ═══ 展开/折叠 ═══ */
+  .tree-toggle {
+    cursor: pointer; user-select: none;
+  }
+  .tree-toggle > .node-label::before {
+    content: '▸'; margin-right: 4px; font-size: 0.8em; color: var(--text2);
+    display: inline-block; transition: transform 0.2s; width: 12px;
+  }
+  .tree-toggle.open > .node-label::before { transform: rotate(90deg); }
+  .tree-toggle > .tree-children { display: none; }
+  .tree-toggle.open > .tree-children { display: block; }
+
+  /* ═══ 源码映射框 ═══ */
+  .source-map {
+    background: #0d1117; border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; margin: 16px 0; overflow-x: auto; font-size: 0.82em;
+    line-height: 1.7; position: relative;
+  }
+  .source-map .lang-tag {
+    position: absolute; top: 8px; right: 12px;
+    font-size: 0.7em; color: var(--text2); text-transform: uppercase; letter-spacing: 1px;
+  }
+  .source-map .file-path { color: var(--cyan); }
+  .source-map .line-num { color: var(--text2); margin-right: 8px; user-select: none; }
+  .source-map .kw { color: var(--pink); }
+  .source-map .fn { color: var(--green); }
+  .source-map .str { color: var(--yellow); }
+  .source-map .cm { color: var(--text2); font-style: italic; }
+  .source-map .type { color: var(--purple); }
+  .source-map .var { color: var(--orange); }
+
+  /* ═══ 知识点详情面板 ═══ */
+  .detail-panel {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin: 16px 0;
+  }
+  .detail-panel h4 {
+    font-size: 1em; font-weight: 700; margin-bottom: 12px;
+    color: var(--blue);
+  }
+  .detail-panel p, .detail-panel li {
+    font-size: 0.88em; color: var(--text2); line-height: 1.8;
+  }
+  .detail-panel ul { padding-left: 20px; margin: 8px 0; }
+
+  /* ═══ 对比表 ═══ */
+  .compare-table {
+    width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.85em;
+  }
+  .compare-table th {
+    background: var(--surface3); padding: 10px 14px; text-align: left;
+    border: 1px solid var(--border); font-weight: 700; color: var(--blue);
+  }
+  .compare-table td {
+    padding: 10px 14px; border: 1px solid var(--border); color: var(--text2);
+  }
+  .compare-table tr:hover td { background: rgba(100,255,218,0.03); }
+
+  /* ═══ 流程连线图 ═══ */
+  .flow-diagram {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; flex-wrap: wrap; margin: 20px 0; padding: 20px;
+    background: var(--surface2); border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .flow-box {
+    padding: 10px 18px; border-radius: 8px; font-size: 0.82em;
+    font-weight: 600; white-space: nowrap; text-align: center;
+  }
+  .flow-connector {
+    font-size: 1.2em; color: var(--text2); padding: 0 10px;
+  }
+
+  /* ═══ 图例 ═══ */
+  .legend {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    padding: 16px 20px; background: var(--surface2);
+    border-radius: 10px; border: 1px solid var(--border);
+    margin: 20px 0; font-size: 0.82em;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+  }
+
+  /* ═══ 提示框 ═══ */
+  .tip-box {
+    border-radius: 10px; padding: 16px 20px; margin: 16px 0;
+    font-size: 0.85em; line-height: 1.7;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .tip-box.insight {
+    background: rgba(100,255,218,0.06); border: 1px solid rgba(100,255,218,0.2);
+    color: var(--blue);
+  }
+  .tip-box.warning {
+    background: rgba(255,184,108,0.06); border: 1px solid rgba(255,184,108,0.2);
+    color: var(--orange);
+  }
+  .tip-box.danger {
+    background: rgba(255,85,85,0.06); border: 1px solid rgba(255,85,85,0.2);
+    color: var(--red);
+  }
+  .tip-icon { font-size: 1.2em; flex-shrink: 0; }
+
+  /* ═══ 底部 ═══ */
+  footer {
+    text-align: center; padding: 60px 24px 40px; color: var(--text2);
+    font-size: 0.85em; position: relative; z-index: 1;
+  }
+
+  /* ═══ 响应式 ═══ */
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 2em; }
+    .stage-card { padding: 20px; }
+    .flow-bar { gap: 4px; }
+    .flow-step .step-box { padding: 8px 14px; font-size: 0.8em; }
+    .flow-arrow { padding: 0 4px; font-size: 1em; }
+    .node-label { font-size: 0.82em; padding: 5px 10px; }
+    .compare-table { font-size: 0.78em; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<canvas id="particles"></canvas>
+
+<!-- ═══ 侧边导航 ═══ -->
+<nav class="side-nav">
+  <a href="#s0"><span class="tip">阅读指南</span></a>
+  <a href="#s1"><span class="tip">① 数据模型</span></a>
+  <a href="#s2"><span class="tip">② 路由分发</span></a>
+  <a href="#s3"><span class="tip">③ 中间件</span></a>
+  <a href="#s4"><span class="tip">④ 控制器</span></a>
+  <a href="#s5"><span class="tip">⑤ 测试实战</span></a>
+  <a href="#s6"><span class="tip">⑥ 调试排错</span></a>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero" id="s0">
+  <h1>接口测试知识树</h1>
+  <p class="subtitle">用开发流程串联知识，用树形结构区分优先级<br>所有示例均来自 EchoVerse 真实源码</p>
+  <span class="badge">源码驱动 · 流程串联 · 优先分级</span>
+</section>
+
+<!-- ═══════════════ 开发流程导航条 ═══════════════ -->
+<div class="flow-bar reveal">
+  <div class="flow-step"><a href="#s1" class="step-box" style="color:var(--green)">① 数据模型</a></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step"><a href="#s2" class="step-box" style="color:var(--purple)">② 路由分发</a></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step"><a href="#s3" class="step-box" style="color:var(--orange)">③ 中间件</a></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step"><a href="#s4" class="step-box" style="color:var(--pink)">④ 控制器</a></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step"><a href="#s5" class="step-box" style="color:var(--blue)">⑤ 测试实战</a></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step"><a href="#s6" class="step-box" style="color:var(--red)">⑥ 调试排错</a></div>
+</div>
+
+<!-- ═══ 图例 ═══ -->
+<div class="container reveal" style="margin-top:20px;">
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div><strong>P1 必须掌握</strong> — 不懂就写不了测试</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div><strong>P2 应该理解</strong> — 理解后测试更全面</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div><strong>P3 了解即可</strong> — 深入时再看</div>
+  </div>
+</div>
+
+<!-- ═══════════════ 阶段1：数据模型 ═══════════════ -->
+<section class="stage reveal" id="s1">
+  <div class="stage-header">
+    <div class="stage-num" style="background:rgba(80,250,123,0.15);color:var(--green)">1</div>
+    <h2 style="color:var(--green)">数据模型 — 一切接口的根基</h2>
+  </div>
+
+  <div class="stage-card">
+    <div class="tip-box insight">
+      <span class="tip-icon">&#9670;</span>
+      <div><strong>为什么先看模型？</strong> 接口本质是对数据的 CRUD。不理解表结构和关系，就无法构造有效的测试数据、验证返回值、预判边界条件。</div>
+    </div>
+
+    <!-- 知识树 -->
+    <div class="tree">
+      <div class="tree-root">
+
+        <!-- P1: Schema基础 -->
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            Schema 是什么？它在项目里做什么？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                prisma/schema.prisma 定义了所有表的结构
+              </span>
+            </div>
+            <div class="tree-node p1 tree-toggle" onclick="event.stopPropagation();this.classList.toggle('open')">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                6 个模型 → 6 张表，每个接口至少涉及一张
+              </span>
+              <div class="tree-children">
+                <div class="tree-node p2">
+                  <span class="node-label">
+                    <span class="priority-tag p2">P2</span>
+                    User / Album / Song — 核心实体
+                  </span>
+                </div>
+                <div class="tree-node p2">
+                  <span class="node-label">
+                    <span class="priority-tag p2">P2</span>
+                    Playlist / Comment — 业务功能
+                  </span>
+                </div>
+                <div class="tree-node p2">
+                  <span class="node-label">
+                    <span class="priority-tag p2">P2</span>
+                    UserFavorite / PlaylistSong — 多对多关联表
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- P1: 关系与约束 -->
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            模型之间的关系对测试有什么影响？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                Song 必须属于 Album → 不能直接创建歌曲，必须先建专辑
+              </span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                级联删除 → 删用户 = 删所有专辑+歌曲+评论+收藏
+              </span>
+            </div>
+            <div class="tree-node p2 tree-toggle" onclick="event.stopPropagation();this.classList.toggle('open')">
+              <span class="node-label">
+                <span class="priority-tag p2">P2</span>
+                唯一约束 → 测试边界的关键
+              </span>
+              <div class="tree-children">
+                <div class="tree-node p2">
+                  <span class="node-label">
+                    <span class="priority-tag p2">P2</span>
+                    User.email 唯一 → 重复注册应返回错误
+                  </span>
+                </div>
+                <div class="tree-node p2">
+                  <span class="node-label">
+                    <span class="priority-tag p2">P2</span>
+                    [userId, songId] 唯一 → 不能重复收藏
+                  </span>
+                </div>
+                <div class="tree-node p2">
+                  <span class="node-label">
+                    <span class="priority-tag p2">P2</span>
+                    [playlistId, songId] 唯一 → 歌单不能加重复歌曲
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="tree-node p3">
+              <span class="node-label">
+                <span class="priority-tag p3">P3</span>
+                可选字段(?)与默认值 → 创建时可以省略哪些参数
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 源码映射 -->
+    <div class="source-map">
+      <span class="lang-tag">prisma/schema.prisma</span>
+<pre><span class="cm">// 核心关系链：User → Album → Song（级联删除）</span>
+<span class="kw">model</span> <span class="type">Song</span> {
+  <span class="var">id</span>        Int      <span class="fn">@id</span> <span class="fn">@default</span>(<span class="fn">autoincrement</span>())
+  <span class="var">title</span>     String
+  <span class="var">artist</span>    String
+  <span class="var">audioUrl</span>  String
+  <span class="var">duration</span>  Float
+  <span class="var">lyrics</span>    String?       <span class="cm">// ← 可选字段，测试时可以不传</span>
+  <span class="var">playCount</span> Int      <span class="fn">@default</span>(0)  <span class="cm">// ← 默认值，创建时自动为0</span>
+  <span class="var">albumId</span>   Int            <span class="cm">// ← 必须字段！Song 不能脱离 Album 存在</span>
+  <span class="var">album</span>     Album    <span class="fn">@relation</span>(fields: [albumId], onDelete: <span class="str">Cascade</span>)
+}
+
+<span class="kw">model</span> <span class="type">UserFavorite</span> {
+  <span class="var">userId</span>  Int
+  <span class="var">songId</span>  Int
+  <span class="fn">@@unique</span>([userId, songId])  <span class="cm">// ← 联合唯一，重复收藏会触发 P2002 错误</span>
+}</pre>
+    </div>
+
+    <div class="tip-box warning">
+      <span class="tip-icon">&#9888;</span>
+      <div><strong>测试启示：</strong>构造测试数据的顺序必须是 注册用户 → 创建专辑(含歌曲) → 然后才能测试歌曲相关接口（收藏、评论、歌单添加）。这就是数据依赖链。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 阶段2：路由分发 ═══════════════ -->
+<section class="stage reveal" id="s2">
+  <div class="stage-header">
+    <div class="stage-num" style="background:rgba(189,147,249,0.15);color:var(--purple)">2</div>
+    <h2 style="color:var(--purple)">路由分发 — 请求从哪里进来</h2>
+  </div>
+
+  <div class="stage-card">
+    <div class="tip-box insight">
+      <span class="tip-icon">&#9670;</span>
+      <div><strong>路由 = 接口的入口。</strong> 请求到达服务器后，先由 <code>app.js</code> 分发到不同路由文件，路由文件再交给对应的控制器。测试接口时，你发的每个请求都在走这条路。</div>
+    </div>
+
+    <div class="flow-diagram">
+      <div class="flow-box" style="background:rgba(189,147,249,0.15);color:var(--purple)">客户端请求</div>
+      <span class="flow-connector">→</span>
+      <div class="flow-box" style="background:rgba(80,250,123,0.15);color:var(--green)">app.js 匹配前缀</div>
+      <span class="flow-connector">→</span>
+      <div class="flow-box" style="background:rgba(255,184,108,0.15);color:var(--orange)">routes/*.js 匹配路径</div>
+      <span class="flow-connector">→</span>
+      <div class="flow-box" style="background:rgba(255,121,198,0.15);color:var(--pink)">中间件拦截</div>
+      <span class="flow-connector">→</span>
+      <div class="flow-box" style="background:rgba(100,255,218,0.15);color:var(--blue)">controller 处理</div>
+    </div>
+
+    <div class="tree">
+      <div class="tree-root">
+
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            请求 URL 是怎么对应到代码的？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                app.js 注册前缀：app.use('/api/users', userRoutes)
+              </span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                routes/user.js 定义具体路径：router.post('/login', ...)
+              </span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                两段拼接 = 完整路径：/api/users + /login = /api/users/login
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            HTTP 方法（GET/POST/PUT/DELETE）在哪里决定的？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                路由文件里：router.<strong>get</strong> / router.<strong>post</strong> / router.<strong>put</strong> / router.<strong>delete</strong>
+              </span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label">
+                <span class="priority-tag p2">P2</span>
+                方法写错 = 404 → 常见的"明明路径对但就是不通"的原因
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-node p2 tree-toggle" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p2">P2</span>
+            哪些接口需要登录？怎么看出来的？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p2">
+              <span class="node-label">
+                <span class="priority-tag p2">P2</span>
+                路由中有 auth 中间件 = 需要登录 → router.get('/profile', <strong>auth</strong>, ...)
+              </span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label">
+                <span class="priority-tag p2">P2</span>
+                没有 auth 的 = 公开接口 → router.get('/', songController.getSongs)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-node p2 tree-toggle" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p2">P2</span>
+            路径参数 /:id 是什么意思？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p2">
+              <span class="node-label">
+                <span class="priority-tag p2">P2</span>
+                冒号开头 = 动态参数 → /api/songs/<strong>:id</strong> 匹配 /api/songs/1、/api/songs/2…
+              </span>
+            </div>
+            <div class="tree-node p3">
+              <span class="node-label">
+                <span class="priority-tag p3">P3</span>
+                控制器用 req.params.id 获取 → 需要 parseInt 转为数字
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 完整路由表 -->
+    <h4 style="color:var(--purple);margin:24px 0 12px;">完整接口清单（从源码中提取）</h4>
+    <table class="compare-table">
+      <tr><th>方法</th><th>完整路径</th><th>认证</th><th>功能</th><th>源文件</th></tr>
+      <tr><td style="color:var(--green)">POST</td><td>/api/users/register</td><td>-</td><td>用户注册</td><td>routes/user.js</td></tr>
+      <tr><td style="color:var(--green)">POST</td><td>/api/users/login</td><td>-</td><td>用户登录</td><td>routes/user.js</td></tr>
+      <tr><td style="color:var(--cyan)">GET</td><td>/api/users/profile</td><td>auth</td><td>获取个人信息</td><td>routes/user.js</td></tr>
+      <tr><td style="color:var(--orange)">PUT</td><td>/api/users/profile</td><td>auth</td><td>修改个人信息</td><td>routes/user.js</td></tr>
+      <tr><td style="color:var(--red)">DELETE</td><td>/api/users/profile</td><td>auth</td><td>注销账户</td><td>routes/user.js</td></tr>
+      <tr><td style="color:var(--cyan)">GET</td><td>/api/users/favorites</td><td>auth</td><td>获取收藏列表</td><td>routes/user.js</td></tr>
+      <tr><td style="color:var(--green)">POST</td><td>/api/users/favorites</td><td>auth</td><td>切换收藏状态</td><td>routes/user.js</td></tr>
+      <tr><td style="color:var(--cyan)">GET</td><td>/api/songs</td><td>-</td><td>歌曲列表+搜索</td><td>routes/song.js</td></tr>
+      <tr><td style="color:var(--cyan)">GET</td><td>/api/songs/:id</td><td>-</td><td>歌曲详情(+播放计数)</td><td>routes/song.js</td></tr>
+      <tr><td style="color:var(--orange)">PUT</td><td>/api/songs/:id</td><td>auth</td><td>更新歌词(仅创建者)</td><td>routes/song.js</td></tr>
+      <tr><td style="color:var(--green)">POST</td><td>/api/albums</td><td>auth+upload</td><td>创建专辑(文件上传)</td><td>routes/album.js</td></tr>
+      <tr><td style="color:var(--cyan)">GET</td><td>/api/albums/my-albums</td><td>auth</td><td>我的专辑列表</td><td>routes/album.js</td></tr>
+      <tr><td style="color:var(--red)">DELETE</td><td>/api/albums/:id</td><td>auth</td><td>删除专辑(含文件清理)</td><td>routes/album.js</td></tr>
+      <tr><td style="color:var(--cyan)">GET</td><td>/api/playlists</td><td>auth</td><td>用户歌单列表</td><td>routes/playlist.js</td></tr>
+      <tr><td style="color:var(--green)">POST</td><td>/api/playlists</td><td>auth</td><td>创建歌单</td><td>routes/playlist.js</td></tr>
+      <tr><td style="color:var(--cyan)">GET</td><td>/api/playlists/:id</td><td>auth</td><td>歌单详情(含歌曲)</td><td>routes/playlist.js</td></tr>
+      <tr><td style="color:var(--green)">POST</td><td>/api/playlists/:id/songs</td><td>auth</td><td>歌单添加歌曲</td><td>routes/playlist.js</td></tr>
+      <tr><td style="color:var(--red)">DELETE</td><td>/api/playlists/:id/songs/:songId</td><td>auth</td><td>歌单移除歌曲</td><td>routes/playlist.js</td></tr>
+      <tr><td style="color:var(--red)">DELETE</td><td>/api/playlists/:id</td><td>auth</td><td>删除歌单</td><td>routes/playlist.js</td></tr>
+      <tr><td style="color:var(--cyan)">GET</td><td>/api/comments/song/:songId</td><td>-</td><td>歌曲评论列表</td><td>routes/comment.js</td></tr>
+      <tr><td style="color:var(--green)">POST</td><td>/api/comments</td><td>auth</td><td>发表评论</td><td>routes/comment.js</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════ 阶段3：中间件 ═══════════════ -->
+<section class="stage reveal" id="s3">
+  <div class="stage-header">
+    <div class="stage-num" style="background:rgba(255,184,108,0.15);color:var(--orange)">3</div>
+    <h2 style="color:var(--orange)">中间件 — 请求被处理前发生了什么</h2>
+  </div>
+
+  <div class="stage-card">
+    <div class="tip-box insight">
+      <span class="tip-icon">&#9670;</span>
+      <div><strong>中间件 = 管道上的阀门。</strong> 请求到达控制器之前，要经过一系列中间件。任何一个中间件拒绝，请求就到不了控制器。测试时遇到的 401、403、413 错误，基本都是中间件干的。</div>
+    </div>
+
+    <div class="tree">
+      <div class="tree-root">
+
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            auth 中间件做了什么？不带 token 会怎样？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                从 Header 提取 Authorization: Bearer &lt;token&gt;
+              </span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                用 jwt.verify() 验证 → 失败返回 401
+              </span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                成功 → 把 userId 挂到 req 上 → 控制器才能知道"谁在操作"
+              </span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label">
+                <span class="priority-tag p2">P2</span>
+                Token 过期(7天) → 也是 401，但错误信息不同
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            upload 中间件做了什么？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                解析 multipart/form-data → 把文件保存到 uploads/ 目录
+              </span>
+            </div>
+            <div class="tree-node p2 tree-toggle" onclick="event.stopPropagation();this.classList.toggle('open')">
+              <span class="node-label">
+                <span class="priority-tag p2">P2</span>
+                文件限制规则（测试边界的重点）
+              </span>
+              <div class="tree-children">
+                <div class="tree-node p2">
+                  <span class="node-label">
+                    <span class="priority-tag p2">P2</span>
+                    cover: 仅 image/* 类型，最多 1 个
+                  </span>
+                </div>
+                <div class="tree-node p2">
+                  <span class="node-label">
+                    <span class="priority-tag p2">P2</span>
+                    songs: 仅 audio/* 类型，最多 20 个
+                  </span>
+                </div>
+                <div class="tree-node p2">
+                  <span class="node-label">
+                    <span class="priority-tag p2">P2</span>
+                    总大小: 200MB 上限 → 超过返回 413
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-node p2 tree-toggle" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p2">P2</span>
+            Express 内置中间件（app.js 里的那几行）
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p2">
+              <span class="node-label">
+                <span class="priority-tag p2">P2</span>
+                express.json() → 解析 JSON 请求体 → 不设的话 req.body 是 undefined
+              </span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label">
+                <span class="priority-tag p2">P2</span>
+                cors() → 允许跨域 → 不影响 Postman/curl 测试，影响浏览器
+              </span>
+            </div>
+            <div class="tree-node p3">
+              <span class="node-label">
+                <span class="priority-tag p3">P3</span>
+                express.static('/uploads') → 让上传文件可通过 URL 访问
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 源码映射 -->
+    <div class="source-map">
+      <span class="lang-tag">middleware/auth.js</span>
+<pre><span class="kw">const</span> <span class="fn">auth</span> = (<span class="var">req</span>, <span class="var">res</span>, <span class="var">next</span>) => {
+  <span class="kw">const</span> authHeader = req.headers[<span class="str">'authorization'</span>];  <span class="cm">// ← 取请求头</span>
+  <span class="kw">const</span> token = authHeader && authHeader.split(<span class="str">' '</span>)[1]; <span class="cm">// ← "Bearer xxx" 取后半段</span>
+
+  <span class="kw">if</span> (!token) <span class="kw">return</span> res.status(<span class="var">401</span>).json({...}); <span class="cm">// ← 没 token → 401</span>
+
+  jwt.verify(token, SECRET, (err, decoded) => {
+    <span class="kw">if</span> (err) <span class="kw">return</span> res.status(<span class="var">401</span>).json({...});   <span class="cm">// ← token 无效 → 401</span>
+    req.userId = decoded.userId;  <span class="cm">// ← 关键！后续控制器靠这个识别用户</span>
+    <span class="fn">next</span>();  <span class="cm">// ← 放行，进入下一个中间件或控制器</span>
+  });
+};</pre>
+    </div>
+
+    <div class="detail-panel">
+      <h4>中间件的测试要点</h4>
+      <table class="compare-table">
+        <tr><th>测试场景</th><th>期望结果</th><th>对应中间件</th></tr>
+        <tr><td>不带 Authorization 头</td><td>401</td><td>auth.js</td></tr>
+        <tr><td>Bearer 后面是乱码</td><td>401</td><td>auth.js</td></tr>
+        <tr><td>Token 过期（7天后）</td><td>401</td><td>auth.js</td></tr>
+        <tr><td>上传非音频文件作为歌曲</td><td>400 文件类型错误</td><td>upload.js</td></tr>
+        <tr><td>上传超过 200MB</td><td>413</td><td>upload.js</td></tr>
+        <tr><td>不带 Content-Type: application/json</td><td>req.body 为空</td><td>express.json()</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 阶段4：控制器 ═══════════════ -->
+<section class="stage reveal" id="s4">
+  <div class="stage-header">
+    <div class="stage-num" style="background:rgba(255,121,198,0.15);color:var(--pink)">4</div>
+    <h2 style="color:var(--pink)">控制器 — 业务逻辑在这里</h2>
+  </div>
+
+  <div class="stage-card">
+    <div class="tip-box insight">
+      <span class="tip-icon">&#9670;</span>
+      <div><strong>控制器是测试的核心目标。</strong> 中间件只管"放不放行"，控制器决定"怎么处理数据"。大多数测试用例的设计依据，来自控制器源码中的 if/else 分支。</div>
+    </div>
+
+    <div class="tree">
+      <div class="tree-root">
+
+        <!-- 用户模块 -->
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            注册/登录 — 如何设计测试用例？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1 tree-toggle" onclick="event.stopPropagation();this.classList.toggle('open')">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                register — 看源码中的校验分支
+              </span>
+              <div class="tree-children">
+                <div class="tree-node p1">
+                  <span class="node-label"><span class="priority-tag p1">P1</span> 正常注册 → 201 + 返回 user + token</span>
+                </div>
+                <div class="tree-node p1">
+                  <span class="node-label"><span class="priority-tag p1">P1</span> 缺少 email/username/password → 400</span>
+                </div>
+                <div class="tree-node p2">
+                  <span class="node-label"><span class="priority-tag p2">P2</span> 邮箱已存在 → 400 "该邮箱已注册"</span>
+                </div>
+              </div>
+            </div>
+            <div class="tree-node p1 tree-toggle" onclick="event.stopPropagation();this.classList.toggle('open')">
+              <span class="node-label">
+                <span class="priority-tag p1">P1</span>
+                login — 看源码中的错误路径
+              </span>
+              <div class="tree-children">
+                <div class="tree-node p1">
+                  <span class="node-label"><span class="priority-tag p1">P1</span> 正确邮箱+密码 → 200 + token</span>
+                </div>
+                <div class="tree-node p1">
+                  <span class="node-label"><span class="priority-tag p1">P1</span> 邮箱不存在 → 401（通用错误信息）</span>
+                </div>
+                <div class="tree-node p2">
+                  <span class="node-label"><span class="priority-tag p2">P2</span> 密码错误 → 也是 401 同样信息（安全设计：不暴露哪个错了）</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 收藏 -->
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            toggleFavorite — 一个接口两种行为
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> 未收藏 → 调用后收藏 → {favorited: true}</span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> 已收藏 → 再调用取消 → {favorited: false}</span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> songId 不存在 → 外键约束报错</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 专辑创建 -->
+        <div class="tree-node p2 tree-toggle" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p2">P2</span>
+            createAlbum — 最复杂的接口（文件+事务）
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> FormData 格式：cover(1) + songs(多个) + 文本字段</span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> Prisma 事务：Album + 多个 Song 原子创建</span>
+            </div>
+            <div class="tree-node p3">
+              <span class="node-label"><span class="priority-tag p3">P3</span> music-metadata 提取音频时长 → 文件损坏时的处理</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 歌曲详情 -->
+        <div class="tree-node p2 tree-toggle" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p2">P2</span>
+            getSongById — 有副作用的 GET 请求
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> 每次调用 playCount + 1 → 可以验证：调用前后 count 变化</span>
+            </div>
+            <div class="tree-node p3">
+              <span class="node-label"><span class="priority-tag p3">P3</span> 返回包含 top10 评论 + 收藏数 + 评论数</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 权限校验 -->
+        <div class="tree-node p2 tree-toggle" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p2">P2</span>
+            权限校验 — 控制器里的"谁能操作"逻辑
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> updateSong: album.userId === req.userId → 只有创建者能改歌词</span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> deleteAlbum: album.userId !== userId → 403</span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> getPlaylistById: playlist.userId !== userId → 403</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 源码映射：从分支到用例 -->
+    <div class="source-map">
+      <span class="lang-tag">controllers/userController.js → 如何从 if 推导测试用例</span>
+<pre><span class="kw">async</span> <span class="fn">register</span>(req, res, next) {
+  <span class="kw">const</span> { email, username, password } = req.body;
+
+  <span class="cm">// 分支 1：缺少必填字段 → 测试用例：不传 email</span>
+  <span class="kw">if</span> (!email || !username || !password) {
+    <span class="kw">return</span> res.status(<span class="var">400</span>).json({ error: <span class="str">'请提供邮箱、用户名和密码'</span> });
+  }
+
+  <span class="cm">// 分支 2：邮箱重复 → 测试用例：用已注册邮箱再注册</span>
+  <span class="kw">const</span> existingUser = <span class="kw">await</span> prisma.user.findUnique({ where: { email } });
+  <span class="kw">if</span> (existingUser) {
+    <span class="kw">return</span> res.status(<span class="var">400</span>).json({ error: <span class="str">'该邮箱已注册'</span> });
+  }
+
+  <span class="cm">// 分支 3：正常注册 → 测试用例：全部字段正确</span>
+  <span class="kw">const</span> hashedPassword = <span class="kw">await</span> bcrypt.hash(password, 10);
+  <span class="kw">const</span> user = <span class="kw">await</span> prisma.user.create({...});
+  <span class="kw">const</span> token = jwt.sign({userId: user.id}, SECRET, {expiresIn: <span class="str">'7d'</span>});
+  res.status(<span class="var">201</span>).json({ user, token });  <span class="cm">// ← 验证：status=201, 有 token</span>
+}</pre>
+    </div>
+
+    <div class="tip-box warning">
+      <span class="tip-icon">&#9888;</span>
+      <div><strong>核心方法论：</strong>打开控制器源码 → 找到所有 <code>if</code> 分支 → 每个分支 = 一个测试用例。正常路径是一个用例，每个错误分支也是一个用例。这就是"从源码推导用例"。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 阶段5：测试实战 ═══════════════ -->
+<section class="stage reveal" id="s5">
+  <div class="stage-header">
+    <div class="stage-num" style="background:rgba(100,255,218,0.15);color:var(--blue)">5</div>
+    <h2 style="color:var(--blue)">测试实战 — 用工具验证你的理解</h2>
+  </div>
+
+  <div class="stage-card">
+    <div class="tip-box insight">
+      <span class="tip-icon">&#9670;</span>
+      <div><strong>前面 4 步是"读"源码，这一步是"动手"。</strong> 测试工具不重要，重要的是你知道要测什么、为什么测、期望什么结果——这些答案全在源码里。</div>
+    </div>
+
+    <div class="tree">
+      <div class="tree-root">
+
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            一个接口怎么测？完整步骤
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> ① 读路由 → 确定 URL + 方法 + 是否要 auth</span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> ② 读控制器 → 确定请求参数(body/query/params)</span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> ③ 数 if 分支 → 得出测试用例数量</span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> ④ 准备依赖数据 → 根据 Schema 关系链构造</span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> ⑤ 发送请求 → 对比实际 vs 预期</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            测试数据依赖链 — 按什么顺序准备数据？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> 第一步：POST /api/users/register → 拿到 token</span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> 第二步：POST /api/albums (带token+文件) → 拿到 albumId + songId</span>
+            </div>
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> 第三步：现在才能测 收藏/评论/歌单/歌词更新…</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-node p2 tree-toggle" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p2">P2</span>
+            验证响应的哪些部分？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1">
+              <span class="node-label"><span class="priority-tag p1">P1</span> Status Code — 200/201/400/401/403/404/500</span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> Response Body — 字段是否齐全、类型是否正确</span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> 数据库状态 — 记录是否真的创建/删除/修改了</span>
+            </div>
+            <div class="tree-node p3">
+              <span class="node-label"><span class="priority-tag p3">P3</span> 副作用 — playCount 增长、文件是否写入磁盘</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 实战示例：完整测试流程 -->
+    <h4 style="color:var(--blue);margin:24px 0 12px;">实战示例：测试"收藏切换"接口的完整流程</h4>
+
+    <div class="source-map">
+      <span class="lang-tag">curl 测试流程</span>
+<pre><span class="cm"># ① 准备数据：先登录拿 token（假设 seed 数据已存在）</span>
+<span class="fn">curl</span> -X POST http://localhost:3000/api/users/login \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"email":"test@example.com","password":"123456"}'</span>
+<span class="cm"># → 拿到 token: "eyJhbGci..."</span>
+
+<span class="cm"># ② 测试正常路径：收藏歌曲(songId=1)</span>
+<span class="fn">curl</span> -X POST http://localhost:3000/api/users/favorites \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"Authorization: Bearer eyJhbGci..."</span> \
+  -d <span class="str">'{"songId": 1}'</span>
+<span class="cm"># → 期望：200, {"message":"...", "favorited": true}</span>
+
+<span class="cm"># ③ 测试切换：再次调用同一接口 → 应该取消收藏</span>
+<span class="fn">curl</span> -X POST http://localhost:3000/api/users/favorites \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"Authorization: Bearer eyJhbGci..."</span> \
+  -d <span class="str">'{"songId": 1}'</span>
+<span class="cm"># → 期望：200, {"message":"...", "favorited": false}</span>
+
+<span class="cm"># ④ 测试无 token → 应该被 auth 中间件拦截</span>
+<span class="fn">curl</span> -X POST http://localhost:3000/api/users/favorites \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"songId": 1}'</span>
+<span class="cm"># → 期望：401</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 阶段6：调试排错 ═══════════════ -->
+<section class="stage reveal" id="s6">
+  <div class="stage-header">
+    <div class="stage-num" style="background:rgba(255,85,85,0.15);color:var(--red)">6</div>
+    <h2 style="color:var(--red)">调试排错 — 测试不通过时怎么办</h2>
+  </div>
+
+  <div class="stage-card">
+    <div class="tip-box insight">
+      <span class="tip-icon">&#9670;</span>
+      <div><strong>状态码是最好的线索。</strong> 每个状态码都指向代码中特定的位置。看到错误码，就知道该去哪行代码找原因。</div>
+    </div>
+
+    <div class="tree">
+      <div class="tree-root">
+
+        <div class="tree-node p1 tree-toggle open" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p1">P1</span>
+            收到异常状态码 → 去哪里找原因？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p1 tree-toggle" onclick="event.stopPropagation();this.classList.toggle('open')">
+              <span class="node-label"><span class="priority-tag p1">P1</span> 401 → 中间件 auth.js</span>
+              <div class="tree-children">
+                <div class="tree-node p2"><span class="node-label"><span class="priority-tag p2">P2</span> 没带 token？格式不对("Bearer "少空格)？过期了？</span></div>
+              </div>
+            </div>
+            <div class="tree-node p1 tree-toggle" onclick="event.stopPropagation();this.classList.toggle('open')">
+              <span class="node-label"><span class="priority-tag p1">P1</span> 400 → 控制器的参数校验</span>
+              <div class="tree-children">
+                <div class="tree-node p2"><span class="node-label"><span class="priority-tag p2">P2</span> 看错误消息 → 定位到控制器中具体哪个 if</span></div>
+              </div>
+            </div>
+            <div class="tree-node p1 tree-toggle" onclick="event.stopPropagation();this.classList.toggle('open')">
+              <span class="node-label"><span class="priority-tag p1">P1</span> 404 → 路由不匹配 或 资源不存在</span>
+              <div class="tree-children">
+                <div class="tree-node p2"><span class="node-label"><span class="priority-tag p2">P2</span> "请求的资源不存在" → URL/方法写错了（app.js 兜底）</span></div>
+                <div class="tree-node p2"><span class="node-label"><span class="priority-tag p2">P2</span> 业务 404 → 控制器里 findUnique 返回 null</span></div>
+              </div>
+            </div>
+            <div class="tree-node p2 tree-toggle" onclick="event.stopPropagation();this.classList.toggle('open')">
+              <span class="node-label"><span class="priority-tag p2">P2</span> 403 → 权限不足（控制器的 userId 检查）</span>
+              <div class="tree-children">
+                <div class="tree-node p3"><span class="node-label"><span class="priority-tag p3">P3</span> 用 A 用户的 token 操作 B 用户的资源</span></div>
+              </div>
+            </div>
+            <div class="tree-node p2 tree-toggle" onclick="event.stopPropagation();this.classList.toggle('open')">
+              <span class="node-label"><span class="priority-tag p2">P2</span> 500 → 代码运行时错误（catch 块）</span>
+              <div class="tree-children">
+                <div class="tree-node p2"><span class="node-label"><span class="priority-tag p2">P2</span> 看后端终端日志 → console.error 会打印具体错误</span></div>
+                <div class="tree-node p3"><span class="node-label"><span class="priority-tag p3">P3</span> 常见：Prisma 外键约束失败、字段类型不匹配</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree-node p2 tree-toggle" onclick="this.classList.toggle('open')">
+          <span class="node-label">
+            <span class="priority-tag p2">P2</span>
+            状态码对了但数据不对 → 怎么排查？
+          </span>
+          <div class="tree-children">
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> 检查控制器中 include/select → 是否遗漏了关联数据</span>
+            </div>
+            <div class="tree-node p2">
+              <span class="node-label"><span class="priority-tag p2">P2</span> 用 Prisma Studio (npx prisma studio) 直接看数据库</span>
+            </div>
+            <div class="tree-node p3">
+              <span class="node-label"><span class="priority-tag p3">P3</span> 检查数据格式转换 → 如 PlaylistSong 展平为 Song 数组</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 速查表 -->
+    <h4 style="color:var(--red);margin:24px 0 12px;">状态码 → 源码位置 速查表</h4>
+    <table class="compare-table">
+      <tr><th>状态码</th><th>含义</th><th>产生位置</th><th>排查方向</th></tr>
+      <tr><td style="color:var(--green)">200</td><td>成功</td><td>控制器正常路径</td><td>检查返回数据是否完整</td></tr>
+      <tr><td style="color:var(--green)">201</td><td>创建成功</td><td>register / createPlaylist</td><td>检查数据库是否有新记录</td></tr>
+      <tr><td style="color:var(--orange)">400</td><td>参数错误</td><td>控制器 if(!xxx) 分支</td><td>看 error 消息 → 定位哪个字段</td></tr>
+      <tr><td style="color:var(--red)">401</td><td>未认证</td><td>middleware/auth.js</td><td>检查 Authorization 头格式</td></tr>
+      <tr><td style="color:var(--red)">403</td><td>无权限</td><td>控制器 userId 校验</td><td>确认 token 对应的用户是资源所有者</td></tr>
+      <tr><td style="color:var(--orange)">404</td><td>不存在</td><td>app.js 兜底 / 控制器</td><td>检查 URL 拼写、HTTP 方法、资源 ID</td></tr>
+      <tr><td style="color:var(--red)">500</td><td>服务器错误</td><td>控制器 catch 块</td><td>看后端终端 console.error 输出</td></tr>
+    </table>
+
+    <div class="tip-box danger">
+      <span class="tip-icon">&#9888;</span>
+      <div><strong>最常见的坑：</strong>① 忘记带 <code>Content-Type: application/json</code> 导致 body 为空 ② Token 的 "Bearer " 后面少了空格 ③ 用 POST 去请求 GET 接口（反之亦然）④ 忘记数据依赖链，直接测下游接口</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 总结回顾 ═══════════════ -->
+<section class="stage reveal" style="margin-bottom:40px;">
+  <div class="stage-card" style="border-color:rgba(100,255,218,0.3);">
+    <h2 style="text-align:center;margin-bottom:24px;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">总结：一张图串起全部</h2>
+
+    <div class="flow-diagram" style="flex-direction:column;align-items:stretch;gap:16px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="flow-box" style="background:rgba(80,250,123,0.15);color:var(--green);min-width:120px;">Schema</div>
+        <div style="color:var(--text2);font-size:0.85em;flex:1;">→ 告诉你<strong>数据长什么样</strong>、有什么约束、依赖关系 → 决定<strong>测试数据怎么构造</strong></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="flow-box" style="background:rgba(189,147,249,0.15);color:var(--purple);min-width:120px;">Routes</div>
+        <div style="color:var(--text2);font-size:0.85em;flex:1;">→ 告诉你<strong>URL 是什么</strong>、用什么方法、要不要认证 → 决定<strong>请求怎么发</strong></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="flow-box" style="background:rgba(255,184,108,0.15);color:var(--orange);min-width:120px;">Middleware</div>
+        <div style="color:var(--text2);font-size:0.85em;flex:1;">→ 告诉你<strong>什么条件会被拦截</strong> → 决定<strong>认证/上传类的边界测试</strong></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="flow-box" style="background:rgba(255,121,198,0.15);color:var(--pink);min-width:120px;">Controller</div>
+        <div style="color:var(--text2);font-size:0.85em;flex:1;">→ 告诉你<strong>业务逻辑怎么走</strong>、有多少分支 → 决定<strong>测试用例有多少个</strong></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="flow-box" style="background:rgba(100,255,218,0.15);color:var(--blue);min-width:120px;">Testing</div>
+        <div style="color:var(--text2);font-size:0.85em;flex:1;">→ 把上面的理解<strong>转化为具体的请求和断言</strong> → 验证代码是否按预期运行</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="flow-box" style="background:rgba(255,85,85,0.15);color:var(--red);min-width:120px;">Debugging</div>
+        <div style="color:var(--text2);font-size:0.85em;flex:1;">→ 用状态码<strong>反向定位源码位置</strong> → 快速找到问题根因</div>
+      </div>
+    </div>
+
+    <div class="tip-box insight" style="margin-top:20px;">
+      <span class="tip-icon">&#9670;</span>
+      <div><strong>记住这个公式：</strong> 源码中的每个 <code>if</code> 分支 = 一个测试用例。正常路径 + 所有错误分支 = 完整的测试覆盖。不需要额外的文档，源码本身就是最准确的测试设计依据。</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>EchoVerse · 接口测试知识树 · 从源码到测试的完整路径</p>
+  <p style="margin-top:8px;font-size:0.8em;">所有代码示例均来自 echoverse-backend 真实源码</p>
+</footer>
+
+<!-- ═══════════════ JavaScript ═══════════════ -->
+<script>
+// 滚动进度条
+const progress = document.getElementById('progress');
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+  progress.style.width = pct + '%';
+});
+
+// 滚动动画
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// 侧边导航高亮
+const sections = document.querySelectorAll('[id^="s"]');
+const navLinks = document.querySelectorAll('.side-nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 200) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+
+// 粒子背景
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+for (let i = 0; i < 60; i++) {
+  particles.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: Math.random() * 1.5 + 0.5,
+    dx: (Math.random() - 0.5) * 0.3,
+    dy: (Math.random() - 0.5) * 0.3,
+    o: Math.random() * 0.3 + 0.1
+  });
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => {
+    p.x += p.dx; p.y += p.dy;
+    if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+    if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(100,255,218,${p.o})`;
+    ctx.fill();
+  });
+  // 连线
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 120) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(100,255,218,${0.06 * (1 - d / 120)})`;
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(animate);
+}
+animate();
+
+// 流程条点击高亮
+document.querySelectorAll('.flow-step .step-box').forEach(box => {
+  box.addEventListener('click', () => {
+    document.querySelectorAll('.flow-step .step-box').forEach(b => b.classList.remove('active'));
+    box.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
